@@ -69,7 +69,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-950/90 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/20">
               <Plane className="w-5 h-5 text-indigo-400" />
@@ -91,7 +91,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-6 md:py-8">
         {/* Page header */}
         <div className="flex items-start justify-between mb-8">
           <div>
@@ -100,10 +100,10 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
           </div>
           <button
             onClick={onNewTrip}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition shadow-lg shadow-indigo-900/30 shrink-0"
+            className="flex items-center gap-2 px-3 md:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition shadow-lg shadow-indigo-900/30 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            New Trip
+            <span className="hidden sm:inline">New Trip</span>
           </button>
         </div>
 

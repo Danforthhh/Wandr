@@ -93,7 +93,7 @@ export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }
   };
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 340px)', minHeight: '420px' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 300px)', minHeight: '280px' }}>
       {/* Chat header */}
       <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-800">
         <div className="flex items-center gap-2">

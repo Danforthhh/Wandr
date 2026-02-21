@@ -38,7 +38,9 @@ export default function ActivityLog() {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 z-40 w-80 rounded-2xl border border-gray-700 shadow-2xl shadow-black/60 overflow-hidden transition-all duration-200 ${
+      className={`fixed z-40 rounded-2xl border border-gray-700 shadow-2xl shadow-black/60 overflow-hidden transition-all duration-200
+        bottom-[72px] left-3 right-3
+        md:bottom-4 md:left-auto md:right-4 md:w-80 ${
         hasNew ? 'ring-1 ring-indigo-500/40' : ''
       }`}
     >
