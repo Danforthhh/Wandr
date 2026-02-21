@@ -24,8 +24,8 @@ export default function ApiKeyModal({ onSave, existing, onLogout, onDeleteAccoun
       setError('Please enter your API key');
       return;
     }
-    if (!trimmed.startsWith('sk-ant-')) {
-      setError('API key should start with sk-ant-');
+    if (!trimmed.startsWith('pplx-')) {
+      setError('API key should start with pplx-');
       return;
     }
     onSave(trimmed);
@@ -68,7 +68,7 @@ export default function ApiKeyModal({ onSave, existing, onLogout, onDeleteAccoun
           </div>
           <div>
             <h2 className="font-semibold text-gray-100">Connect your AI</h2>
-            <p className="text-sm text-gray-400">Enter your Anthropic API key to get started</p>
+            <p className="text-sm text-gray-400">Enter your Perplexity API key to get started</p>
           </div>
         </div>
 
@@ -81,24 +81,24 @@ export default function ApiKeyModal({ onSave, existing, onLogout, onDeleteAccoun
                 setKey(e.target.value);
                 setError('');
               }}
-              placeholder="sk-ant-api03-..."
+              placeholder="pplx-..."
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono text-sm"
               autoFocus
             />
             {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
             <p className="mt-2 text-xs text-gray-500">
-              Stored securely in your account. Never sent anywhere except Anthropic.
+              Stored securely in your account. Never sent anywhere except Perplexity.
             </p>
           </div>
 
           <a
-            href="https://console.anthropic.com/settings/keys"
+            href="https://www.perplexity.ai/settings/api"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 text-sm text-indigo-400 hover:text-indigo-300 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            Get your key from Anthropic Console
+            Get your key from Perplexity
           </a>
 
           <button

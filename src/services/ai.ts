@@ -1,37 +1,34 @@
 import { Trip, ItineraryDay, PackingItem } from '../types';
 import { logActivity } from './activityLog';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-haiku-4-5-20251001';
+const API_URL = 'https://api.perplexity.ai/chat/completions';
+const MODEL = 'sonar-pro';
 
 type ApiMessage = { role: 'user' | 'assistant'; content: string };
+type FullMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
 // ─── Core API call ────────────────────────────────────────────────────────────
-// Uses Claude's prefill technique: appending an assistant message forces the
-// model to continue from that text, guaranteeing JSON-only responses.
 
 async function callAPI(
   messages: ApiMessage[],
   system: string,
   apiKey: string,
-  options: { maxTokens?: number; prefill?: string } = {}
+  options: { maxTokens?: number } = {}
 ): Promise<string> {
-  const { maxTokens = 8192, prefill } = options;
+  const { maxTokens = 8192 } = options;
 
-  // Add prefill as the last assistant message to force JSON output
-  const allMessages: ApiMessage[] = prefill
-    ? [...messages, { role: 'assistant', content: prefill }]
-    : messages;
+  const allMessages: FullMessage[] = [
+    { role: 'system', content: system },
+    ...messages,
+  ];
 
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: allMessages }),
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: allMessages }),
   });
 
   if (!res.ok) {
@@ -39,11 +36,8 @@ async function callAPI(
     throw new Error(err?.error?.message || `API error ${res.status}`);
   }
 
-  const data = await res.json() as { content: { text: string }[] };
-  const text = data.content[0].text;
-
-  // Prepend the prefill so we get the complete JSON string
-  return prefill ? prefill + text : text;
+  const data = await res.json() as { choices: { message: { content: string } }[] };
+  return data.choices[0].message.content;
 }
 
 function parseJSON<T>(raw: string): T {
@@ -108,9 +102,9 @@ Fill in this JSON exactly (no other text):
   try {
     const text = await callAPI(
       [{ role: 'user', content: prompt }],
-      'You are a travel expert. Output valid JSON only.',
+      'You are a travel expert. Output valid JSON only, no other text.',
       apiKey,
-      { maxTokens: 512, prefill: '{' }
+      { maxTokens: 512 }
     );
     const result = parseJSON<TripOverview>(text);
     logActivity({ message: `Trip "${result.name}" created`, status: 'success' });
@@ -152,7 +146,7 @@ Exactly 4 activities per day. Keep descriptions to 1 sentence.`;
       [{ role: 'user', content: prompt }],
       'Output valid JSON array only. No preamble, no explanation.',
       apiKey,
-      { maxTokens: 8192, prefill: '[' }
+      { maxTokens: 8192 }
     );
     const result = parseJSON<ItineraryDay[]>(text);
     logActivity({
@@ -187,7 +181,7 @@ Mark passport, medications as essential:true. Others essential:false.`;
       [{ role: 'user', content: prompt }],
       'Output valid JSON array only.',
       apiKey,
-      { maxTokens: 3000, prefill: '[' }
+      { maxTokens: 3000 }
     );
     const result = parseJSON<PackingItem[]>(text);
     logActivity({ message: `Packing list ready — ${result.length} items`, status: 'success' });
