@@ -54,16 +54,30 @@ export async function saveChats(uid: string, tripId: string, messages: ChatMessa
   await setDoc(chatDoc(uid, tripId), { messages });
 }
 
-// ── API Key ───────────────────────────────────────────────────────────────────
+// ── API Keys ──────────────────────────────────────────────────────────────────
 
-export async function getApiKey(uid: string): Promise<string> {
-  const snap = await getDoc(settingsDoc(uid));
-  if (!snap.exists()) return '';
-  return (snap.data().apiKey ?? '') as string;
+export interface ApiKeys {
+  perplexityKey: string;
+  anthropicKey: string;
 }
 
-export async function saveApiKey(uid: string, apiKey: string): Promise<void> {
-  await setDoc(settingsDoc(uid), { apiKey });
+export async function getApiKeys(uid: string): Promise<ApiKeys> {
+  const snap = await getDoc(settingsDoc(uid));
+  if (!snap.exists()) return { perplexityKey: '', anthropicKey: '' };
+  const data = snap.data();
+  return {
+    // backward compat: old `apiKey` field maps to perplexityKey
+    perplexityKey: (data.perplexityKey ?? data.apiKey ?? '') as string,
+    anthropicKey:  (data.anthropicKey ?? '') as string,
+  };
+}
+
+export async function saveApiKeys(uid: string, keys: ApiKeys): Promise<void> {
+  await setDoc(
+    settingsDoc(uid),
+    { perplexityKey: keys.perplexityKey, anthropicKey: keys.anthropicKey },
+    { merge: true }
+  );
 }
 
 // ── Account deletion ──────────────────────────────────────────────────────────

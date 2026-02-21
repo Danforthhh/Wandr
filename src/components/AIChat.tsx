@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Bot, User, Trash2 } from 'lucide-react';
+import { Send, Loader2, Bot, User, Trash2, Lock, Settings } from 'lucide-react';
 import { Trip, ChatMessage } from '../types';
 import { chatAboutTrip } from '../services/ai';
 
 interface Props {
   trip: Trip;
   apiKey: string;
+  hasAiKey: boolean;
+  onSettingsClick: () => void;
   getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
   saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
 }
@@ -23,7 +25,7 @@ function nanoid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }: Props) {
+export default function AIChat({ trip, apiKey, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -94,6 +96,28 @@ export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }
       await saveChatHistory(trip.id, []);
     }
   };
+
+  // ── Locked state ─────────────────────────────────────────────────────────
+  if (!hasAiKey) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 bg-gray-800 border border-gray-700 rounded-2xl flex items-center justify-center mb-5">
+          <Lock className="w-7 h-7 text-gray-500" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-400 mb-2">AI Chat unavailable</h3>
+        <p className="text-gray-600 max-w-sm mb-6 leading-relaxed text-sm">
+          Add your Perplexity API key to chat with an AI assistant about your trip to {trip.destination}.
+        </p>
+        <button
+          onClick={onSettingsClick}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition"
+        >
+          <Settings className="w-4 h-4" />
+          Set up in Settings
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 300px)', minHeight: '280px' }}>

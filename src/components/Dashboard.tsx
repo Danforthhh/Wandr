@@ -6,6 +6,7 @@ interface Props {
   onNewTrip: () => void;
   onSelectTrip: (trip: Trip) => void;
   onSettingsClick: () => void;
+  hasAiKey: boolean;
 }
 
 function TripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
@@ -61,7 +62,7 @@ function TripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
   );
 }
 
-export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsClick }: Props) {
+export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsClick, hasAiKey }: Props) {
   const upcoming = trips.filter(t => t.status !== 'completed');
   const completed = trips.filter(t => t.status === 'completed');
 
@@ -83,10 +84,14 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
           </div>
           <button
             onClick={onSettingsClick}
-            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"
+            className="relative p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"
             title="API Settings"
           >
             <Settings className="w-5 h-5" />
+            {/* Amber dot when no AI key is configured */}
+            {!hasAiKey && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
+            )}
           </button>
         </div>
       </header>
@@ -106,6 +111,21 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
             <span className="hidden sm:inline">New Trip</span>
           </button>
         </div>
+
+        {/* No AI key banner */}
+        {!hasAiKey && (
+          <div className="mb-6 flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+            <p className="text-sm text-amber-300">
+              AI features are disabled — add your Perplexity API key to generate itineraries, packing lists, and use AI chat.
+            </p>
+            <button
+              onClick={onSettingsClick}
+              className="shrink-0 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition"
+            >
+              Set up
+            </button>
+          </div>
+        )}
 
         {/* Empty state */}
         {trips.length === 0 && (

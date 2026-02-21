@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Loader2, Sparkles, Clock, MapPin, Utensils, Train, Bed,
-  Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign,
+  Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign, Lock, Settings,
 } from 'lucide-react';
 import { Trip, Activity, ItineraryDay } from '../types';
 
@@ -24,6 +24,8 @@ interface Props {
   trip: Trip;
   onGenerate: (trip: Trip) => Promise<Trip>;
   onUpdate: (trip: Trip) => void;
+  hasAiKey: boolean;
+  onSettingsClick: () => void;
 }
 
 // ── Inline activity editor ────────────────────────────────────────────────────
@@ -121,7 +123,7 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function Itinerary({ trip, onGenerate, onUpdate }: Props) {
+export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSettingsClick }: Props) {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [selectedDay, setSelectedDay] = useState(0);
@@ -168,7 +170,6 @@ export default function Itinerary({ trip, onGenerate, onUpdate }: Props) {
     const newId = nanoid();
     setEditingId(newId);
     setEditForm({ time: '12:00', title: '', description: '', category: 'activity', estimatedCost: 0 });
-    // scroll to bottom happens naturally when rendered
   };
 
   const saveDayTitle = (dayId: string) => {
@@ -193,16 +194,26 @@ export default function Itinerary({ trip, onGenerate, onUpdate }: Props) {
         </div>
         <h3 className="text-xl font-semibold text-gray-200 mb-2">No itinerary yet</h3>
         <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
-          AI will create a personalized day-by-day schedule based on your destination, interests, and travel dates.
+          {hasAiKey
+            ? 'AI will create a personalized day-by-day schedule based on your destination, interests, and travel dates.'
+            : 'Add activities manually using the button below, or set up your Perplexity API key to generate one with AI.'}
         </p>
         {error && (
           <div className="mb-5 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm">{error}</div>
         )}
-        <button onClick={handleGenerate} disabled={loading}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 rounded-xl font-medium transition">
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-          {loading ? 'Generating itinerary…' : 'Generate Itinerary'}
-        </button>
+        {hasAiKey ? (
+          <button onClick={handleGenerate} disabled={loading}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 rounded-xl font-medium transition">
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            {loading ? 'Generating itinerary…' : 'Generate Itinerary'}
+          </button>
+        ) : (
+          <button onClick={onSettingsClick}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition">
+            <Settings className="w-4 h-4" />
+            Set up AI in Settings
+          </button>
+        )}
       </div>
     );
   }
@@ -261,19 +272,36 @@ export default function Itinerary({ trip, onGenerate, onUpdate }: Props) {
                 </button>
               );
             })}
-            {/* Regen on mobile — inline at end of scroll row */}
-            <button onClick={handleGenerate} disabled={loading}
-              className="md:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition">
-              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              <span className="text-xs">Regen</span>
-            </button>
+            {/* Regen on mobile */}
+            {hasAiKey ? (
+              <button onClick={handleGenerate} disabled={loading}
+                className="md:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition">
+                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span className="text-xs">Regen</span>
+              </button>
+            ) : (
+              <button onClick={onSettingsClick}
+                className="md:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-gray-700 hover:text-gray-500 hover:bg-gray-800 rounded-xl transition"
+                title="Set up AI key">
+                <Lock className="w-3.5 h-3.5" />
+                <span className="text-xs">AI</span>
+              </button>
+            )}
           </div>
           {/* Regen on desktop */}
-          <button onClick={handleGenerate} disabled={loading} title="Regenerate itinerary"
-            className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Regen
-          </button>
+          {hasAiKey ? (
+            <button onClick={handleGenerate} disabled={loading} title="Regenerate itinerary"
+              className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
+              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Regen
+            </button>
+          ) : (
+            <button onClick={onSettingsClick} title="Set up Perplexity key to regenerate"
+              className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-700 hover:text-gray-500 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
+              <Lock className="w-3.5 h-3.5" />
+              Regen
+            </button>
+          )}
         </div>
 
         {/* ── Day detail ── */}
@@ -347,7 +375,6 @@ export default function Itinerary({ trip, onGenerate, onUpdate }: Props) {
                         <span className="text-xs text-gray-500 flex items-center gap-0.5 mr-1">
                           <Clock className="w-3 h-3" />{act.time}
                         </span>
-                        {/* Edit / Delete — visible on hover */}
                         <button
                           onClick={() => { setEditingId(act.id); setEditForm({ ...act }); }}
                           className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-indigo-400 hover:bg-gray-800 rounded-lg transition"

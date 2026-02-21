@@ -10,6 +10,7 @@ import {
   Sparkles,
   Check,
   Plane,
+  Settings,
 } from 'lucide-react';
 import { Trip } from '../types';
 
@@ -43,9 +44,11 @@ interface CreateParams {
 interface Props {
   onBack: () => void;
   onCreate: (params: CreateParams) => Promise<Trip>;
+  hasAiKey: boolean;
+  onSettingsClick: () => void;
 }
 
-export default function TripWizard({ onBack, onCreate }: Props) {
+export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick }: Props) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -343,6 +346,22 @@ export default function TripWizard({ onBack, onCreate }: Props) {
               </div>
             </div>
 
+            {/* No AI key warning */}
+            {!hasAiKey && (
+              <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+                <p className="text-sm text-amber-300">
+                  A Perplexity API key is required to create trips with AI.
+                </p>
+                <button
+                  onClick={onSettingsClick}
+                  className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Set up
+                </button>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-300">
                 <strong>Error:</strong> {error}
@@ -351,8 +370,8 @@ export default function TripWizard({ onBack, onCreate }: Props) {
 
             <button
               onClick={handleCreate}
-              disabled={loading}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl font-semibold flex items-center justify-center gap-2.5 transition shadow-lg shadow-indigo-900/30 text-base"
+              disabled={loading || !hasAiKey}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-semibold flex items-center justify-center gap-2.5 transition shadow-lg shadow-indigo-900/30 text-base"
             >
               {loading ? (
                 <>

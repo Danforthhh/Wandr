@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, Check, AlertCircle, Lock, Settings } from 'lucide-react';
 import { Trip, PackingItem } from '../types';
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -16,9 +16,11 @@ interface Props {
   trip: Trip;
   onGenerate: (trip: Trip) => Promise<Trip>;
   onUpdate: (trip: Trip) => void;
+  hasAiKey: boolean;
+  onSettingsClick: () => void;
 }
 
-export default function PackingList({ trip, onGenerate, onUpdate }: Props) {
+export default function PackingList({ trip, onGenerate, onUpdate, hasAiKey, onSettingsClick }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,21 +68,33 @@ export default function PackingList({ trip, onGenerate, onUpdate }: Props) {
         </div>
         <h3 className="text-xl font-semibold text-gray-200 mb-2">No packing list yet</h3>
         <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
-          AI will create a smart, categorized packing list tailored to your destination, activities, and trip duration.
+          {hasAiKey
+            ? 'AI will create a smart, categorized packing list tailored to your destination, activities, and trip duration.'
+            : 'Set up your Perplexity API key to generate a smart packing list with AI.'}
         </p>
         {error && (
           <div className="mb-5 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm">
             {error}
           </div>
         )}
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 rounded-xl font-medium transition"
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-          {loading ? 'Generating packing list…' : 'Generate Packing List'}
-        </button>
+        {hasAiKey ? (
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 rounded-xl font-medium transition"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+            {loading ? 'Generating packing list…' : 'Generate Packing List'}
+          </button>
+        ) : (
+          <button
+            onClick={onSettingsClick}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition"
+          >
+            <Settings className="w-4 h-4" />
+            Set up AI in Settings
+          </button>
+        )}
       </div>
     );
   }
@@ -131,14 +145,26 @@ export default function PackingList({ trip, onGenerate, onUpdate }: Props) {
           {pct === 100 && (
             <span className="text-xs text-emerald-400 font-medium">All packed! ✓</span>
           )}
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="text-xs text-gray-500 hover:text-indigo-400 flex items-center gap-1 transition"
-          >
-            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-            Regenerate
-          </button>
+          {/* Regenerate button — greyed out if no key */}
+          {hasAiKey ? (
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="text-xs text-gray-500 hover:text-indigo-400 flex items-center gap-1 transition"
+            >
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              Regenerate
+            </button>
+          ) : (
+            <button
+              onClick={onSettingsClick}
+              className="text-xs text-gray-700 hover:text-gray-500 flex items-center gap-1 transition"
+              title="Set up Perplexity key to regenerate"
+            >
+              <Lock className="w-3 h-3" />
+              Regenerate
+            </button>
+          )}
         </div>
       </div>
 
