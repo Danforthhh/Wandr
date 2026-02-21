@@ -6,8 +6,8 @@ import { chatAboutTrip } from '../services/ai';
 interface Props {
   trip: Trip;
   apiKey: string;
-  getChatHistory: (tripId: string) => ChatMessage[];
-  saveChatHistory: (tripId: string, messages: ChatMessage[]) => void;
+  getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
+  saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
 }
 
 const QUICK_PROMPTS = [
@@ -31,8 +31,11 @@ export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const history = getChatHistory(trip.id);
-    setMessages(history);
+    let cancelled = false;
+    getChatHistory(trip.id).then(history => {
+      if (!cancelled) setMessages(history);
+    });
+    return () => { cancelled = true; };
   }, [trip.id]);
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }
 
       const final = [...withUser, aiMsg];
       setMessages(final);
-      saveChatHistory(trip.id, final);
+      await saveChatHistory(trip.id, final);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Something went wrong';
       const errMsg: ChatMessage = {
@@ -79,16 +82,16 @@ export default function AIChat({ trip, apiKey, getChatHistory, saveChatHistory }
       };
       const final = [...withUser, errMsg];
       setMessages(final);
-      saveChatHistory(trip.id, final);
+      await saveChatHistory(trip.id, final);
     } finally {
       setLoading(false);
     }
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
     if (confirm('Clear chat history?')) {
       setMessages([]);
-      saveChatHistory(trip.id, []);
+      await saveChatHistory(trip.id, []);
     }
   };
 

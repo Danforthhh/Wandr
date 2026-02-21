@@ -21,8 +21,8 @@ interface Props {
   onGenerateItinerary: (trip: Trip) => Promise<Trip>;
   onGeneratePackingList: (trip: Trip) => Promise<Trip>;
   onUpdateTrip: (trip: Trip) => void;
-  getChatHistory: (tripId: string) => ChatMessage[];
-  saveChatHistory: (tripId: string, messages: ChatMessage[]) => void;
+  getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
+  saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
   apiKey: string;
 }
 

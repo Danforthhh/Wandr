@@ -1,14 +1,21 @@
 import { useState } from 'react';
-import { Key, ExternalLink, Plane } from 'lucide-react';
+import { Key, ExternalLink, Plane, LogOut, Loader2 } from 'lucide-react';
 
 interface Props {
   onSave: (key: string) => void;
   existing: string;
+  onLogout: () => void;
+  onDeleteAccount: (password: string) => Promise<void>;
 }
 
-export default function ApiKeyModal({ onSave, existing }: Props) {
-  const [key, setKey] = useState(existing);
+export default function ApiKeyModal({ onSave, existing, onLogout, onDeleteAccount }: Props) {
+  const [key, setKey]   = useState(existing);
   const [error, setError] = useState('');
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword]       = useState('');
+  const [deleteError, setDeleteError]             = useState('');
+  const [deleting, setDeleting]                   = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +29,23 @@ export default function ApiKeyModal({ onSave, existing }: Props) {
       return;
     }
     onSave(trimmed);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await onDeleteAccount(deletePassword);
+      // Component unmounts as user becomes null
+    } catch (e: unknown) {
+      const err = e as { code?: string };
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setDeleteError('Incorrect password.');
+      } else {
+        setDeleteError('Failed to delete account. Please try again.');
+      }
+      setDeleting(false);
+    }
   };
 
   return (
@@ -63,7 +87,7 @@ export default function ApiKeyModal({ onSave, existing }: Props) {
             />
             {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
             <p className="mt-2 text-xs text-gray-500">
-              Stored locally in your browser. Never sent anywhere except Anthropic.
+              Stored securely in your account. Never sent anywhere except Anthropic.
             </p>
           </div>
 
@@ -85,6 +109,58 @@ export default function ApiKeyModal({ onSave, existing }: Props) {
             Start Planning
           </button>
         </form>
+
+        {/* Account management */}
+        <div className="mt-8 pt-6 border-t border-gray-800">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-sm text-red-500 hover:text-red-400 transition"
+            >
+              Delete account
+            </button>
+          </div>
+
+          {showDeleteConfirm && (
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-3">
+              <p className="text-sm text-red-300 leading-relaxed">
+                This will permanently delete all your trips, chat history, and your account.
+                Enter your password to confirm.
+              </p>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                placeholder="Your password"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-gray-100 placeholder-gray-600 text-sm focus:outline-none focus:border-red-500 transition"
+              />
+              {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); }}
+                  className="flex-1 py-2 text-sm text-gray-400 hover:text-gray-200 bg-gray-800 hover:bg-gray-700 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={!deletePassword || deleting}
+                  className="flex-1 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 disabled:opacity-40 rounded-xl transition flex items-center justify-center gap-1.5"
+                >
+                  {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Delete everything
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

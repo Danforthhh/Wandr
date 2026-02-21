@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
+import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 import { Trip, View, DetailTab, ChatMessage } from './types';
-import { getTrips, saveTrips, getChats, saveChats } from './services/storage';
+import { auth } from './services/firebase';
+import { useAuth } from './hooks/useAuth';
+import {
+  getTrips, saveTrip, deleteTrip as firestoreDeleteTrip,
+  getChats, saveChats,
+  getApiKey, saveApiKey,
+  deleteAllUserData,
+} from './services/firestore';
 import { generateTripDetails, generateItinerary, generatePackingList } from './services/ai';
+import AuthPage from './components/AuthPage';
 import ApiKeyModal from './components/ApiKeyModal';
 import Dashboard from './components/Dashboard';
 import TripWizard from './components/TripWizard';
@@ -13,6 +23,8 @@ function nanoid(): string {
 }
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
+
   const [trips, setTrips]               = useState<Trip[]>([]);
   const [view, setView]                 = useState<View>('dashboard');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -20,25 +32,45 @@ export default function App() {
   const [apiKey, setApiKey]             = useState('');
   const [showKeyModal, setShowKeyModal] = useState(false);
 
-  // Load from storage on mount
+  // Load user data from Firestore when auth state resolves
   useEffect(() => {
-    setTrips(getTrips());
-    const stored = localStorage.getItem('wandr_api_key') ?? '';
-    setApiKey(stored);
-    if (!stored) setShowKeyModal(true);
-  }, []);
+    if (!user) {
+      setTrips([]);
+      setApiKey('');
+      setView('dashboard');
+      setSelectedTrip(null);
+      return;
+    }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+    let cancelled = false;
+    Promise.all([getTrips(user.uid), getApiKey(user.uid)]).then(([loadedTrips, loadedKey]) => {
+      if (cancelled) return;
+      setTrips(loadedTrips);
+      setApiKey(loadedKey);
+      if (!loadedKey) setShowKeyModal(true);
+    });
+    return () => { cancelled = true; };
+  }, [user]);
 
-  const persistTrips = (updated: Trip[]) => {
-    setTrips(updated);
-    saveTrips(updated);
+  // ── API key ──────────────────────────────────────────────────────────────────
+
+  const handleSaveApiKey = async (key: string) => {
+    setApiKey(key);
+    if (user) await saveApiKey(user.uid, key);
+    setShowKeyModal(false);
   };
 
-  const handleSaveApiKey = (key: string) => {
-    setApiKey(key);
-    localStorage.setItem('wandr_api_key', key);
-    setShowKeyModal(false);
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+
+  const handleLogout = () => signOut(auth);
+
+  const handleDeleteAccount = async (password: string) => {
+    if (!user?.email) return;
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+    await deleteAllUserData(user.uid);
+    await deleteUser(user);
+    // onAuthStateChanged fires → user becomes null → useEffect clears state
   };
 
   // ── Trip CRUD ──────────────────────────────────────────────────────────────
@@ -55,42 +87,44 @@ export default function App() {
     const details = await generateTripDetails({ ...params, apiKey });
 
     const trip: Trip = {
-      id:       nanoid(),
-      name:     details.name,
-      emoji:    details.emoji,
-      description:    details.description,
-      coverGradient:  details.coverGradient,
-      destination:    params.destination,
-      country:        params.destination.split(',').pop()?.trim() ?? params.destination,
-      startDate:      params.startDate,
-      endDate:        params.endDate,
-      travelers:      params.travelers,
-      budget:         params.budget,
-      currency:       params.currency,
-      interests:      params.interests,
-      itinerary:      [],
-      packingList:    [],
-      status:         'planning',
-      createdAt:      new Date().toISOString(),
+      id:            nanoid(),
+      name:          details.name,
+      emoji:         details.emoji,
+      description:   details.description,
+      coverGradient: details.coverGradient,
+      destination:   params.destination,
+      country:       params.destination.split(',').pop()?.trim() ?? params.destination,
+      startDate:     params.startDate,
+      endDate:       params.endDate,
+      travelers:     params.travelers,
+      budget:        params.budget,
+      currency:      params.currency,
+      interests:     params.interests,
+      itinerary:     [],
+      packingList:   [],
+      status:        'planning',
+      createdAt:     new Date().toISOString(),
     };
 
-    persistTrips([...trips, trip]);
+    setTrips(prev => [...prev, trip]);
     setSelectedTrip(trip);
     setActiveTab('overview');
     setView('detail');
+    if (user) await saveTrip(user.uid, trip);
     return trip;
   };
 
-  const handleUpdateTrip = (updated: Trip) => {
-    const list = trips.map(t => (t.id === updated.id ? updated : t));
+  const handleUpdateTrip = async (updated: Trip) => {
+    setTrips(prev => prev.map(t => t.id === updated.id ? updated : t));
     setSelectedTrip(updated);
-    persistTrips(list);
+    if (user) await saveTrip(user.uid, updated);
   };
 
-  const handleDeleteTrip = (id: string) => {
-    persistTrips(trips.filter(t => t.id !== id));
+  const handleDeleteTrip = async (id: string) => {
+    setTrips(prev => prev.filter(t => t.id !== id));
     setView('dashboard');
     setSelectedTrip(null);
+    if (user) await firestoreDeleteTrip(user.uid, id);
   };
 
   // ── AI generation ──────────────────────────────────────────────────────────
@@ -98,29 +132,47 @@ export default function App() {
   const handleGenerateItinerary = async (trip: Trip): Promise<Trip> => {
     const itinerary = await generateItinerary(trip, apiKey);
     const updated = { ...trip, itinerary };
-    handleUpdateTrip(updated);
+    await handleUpdateTrip(updated);
     return updated;
   };
 
   const handleGeneratePackingList = async (trip: Trip): Promise<Trip> => {
     const packingList = await generatePackingList(trip, apiKey);
     const updated = { ...trip, packingList };
-    handleUpdateTrip(updated);
+    await handleUpdateTrip(updated);
     return updated;
   };
 
   // ── Chat history ───────────────────────────────────────────────────────────
 
-  const getChatHistory    = (tripId: string): ChatMessage[] => getChats(tripId);
-  const saveChatHistory   = (tripId: string, msgs: ChatMessage[]) => saveChats(tripId, msgs);
+  const getChatHistory = (tripId: string): Promise<ChatMessage[]> =>
+    user ? getChats(user.uid, tripId) : Promise.resolve([]);
+
+  const saveChatHistory = (tripId: string, messages: ChatMessage[]): Promise<void> =>
+    user ? saveChats(user.uid, tripId, messages) : Promise.resolve();
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return <AuthPage />;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
       <ActivityLog />
       {showKeyModal && (
-        <ApiKeyModal onSave={handleSaveApiKey} existing={apiKey} />
+        <ApiKeyModal
+          onSave={handleSaveApiKey}
+          existing={apiKey}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
+        />
       )}
 
       {view === 'dashboard' && (
