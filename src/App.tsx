@@ -31,9 +31,9 @@ export default function App() {
   const [activeTab, setActiveTab]       = useState<DetailTab>('overview');
   const [perplexityKey, setPerplexityKey] = useState('');
   const [anthropicKey, setAnthropicKey]   = useState('');
-  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showKeyModal, setShowKeyModal]   = useState(false);
 
-  // Load user data from Firestore when auth state resolves
+  // Load user data on auth
   useEffect(() => {
     if (!user) {
       setTrips([]);
@@ -85,7 +85,7 @@ export default function App() {
     currency: string;
     interests: string[];
   }): Promise<Trip> => {
-    const details = await generateTripDetails({ ...params, apiKey: perplexityKey });
+    const details = await generateTripDetails({ ...params, anthropicKey, perplexityKey });
 
     const trip: Trip = {
       id:            nanoid(),
@@ -131,14 +131,14 @@ export default function App() {
   // ── AI generation ──────────────────────────────────────────────────────────
 
   const handleGenerateItinerary = async (trip: Trip): Promise<Trip> => {
-    const itinerary = await generateItinerary(trip, perplexityKey);
+    const itinerary = await generateItinerary(trip, anthropicKey, perplexityKey);
     const updated = { ...trip, itinerary };
     await handleUpdateTrip(updated);
     return updated;
   };
 
   const handleGeneratePackingList = async (trip: Trip): Promise<Trip> => {
-    const packingList = await generatePackingList(trip, perplexityKey);
+    const packingList = await generatePackingList(trip, anthropicKey, perplexityKey);
     const updated = { ...trip, packingList };
     await handleUpdateTrip(updated);
     return updated;
@@ -164,7 +164,10 @@ export default function App() {
 
   if (!user) return <AuthPage />;
 
-  const hasAiKey = !!perplexityKey;
+  // Generation needs at least one key (Claude or Perplexity)
+  const hasGenerationKey = !!(anthropicKey || perplexityKey);
+  // Search and chat need Perplexity (real-time web data)
+  const hasSearchKey = !!perplexityKey;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
@@ -189,7 +192,7 @@ export default function App() {
             setView('detail');
           }}
           onSettingsClick={() => setShowKeyModal(true)}
-          hasAiKey={hasAiKey}
+          hasAiKey={hasGenerationKey}
         />
       )}
 
@@ -197,7 +200,7 @@ export default function App() {
         <TripWizard
           onBack={() => setView('dashboard')}
           onCreate={handleCreateTrip}
-          hasAiKey={hasAiKey}
+          hasAiKey={hasGenerationKey}
           onSettingsClick={() => setShowKeyModal(true)}
         />
       )}
@@ -214,8 +217,9 @@ export default function App() {
           onUpdateTrip={handleUpdateTrip}
           getChatHistory={getChatHistory}
           saveChatHistory={saveChatHistory}
-          apiKey={perplexityKey}
-          hasAiKey={hasAiKey}
+          perplexityKey={perplexityKey}
+          hasGenerationKey={hasGenerationKey}
+          hasSearchKey={hasSearchKey}
           onSettingsClick={() => setShowKeyModal(true)}
         />
       )}

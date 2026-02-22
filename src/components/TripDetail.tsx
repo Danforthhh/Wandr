@@ -13,6 +13,8 @@ import { Trip, DetailTab, ChatMessage } from '../types';
 import Itinerary from './Itinerary';
 import PackingList from './PackingList';
 import AIChat from './AIChat';
+import TripMap from './TripMap';
+import TripSearch from './TripSearch';
 
 interface Props {
   trip: Trip;
@@ -25,16 +27,19 @@ interface Props {
   onUpdateTrip: (trip: Trip) => void;
   getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
   saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
-  apiKey: string;
-  hasAiKey: boolean;
+  perplexityKey: string;
+  hasGenerationKey: boolean;
+  hasSearchKey: boolean;
   onSettingsClick: () => void;
 }
 
-const TABS: { id: DetailTab; label: string; emoji: string; aiOnly?: boolean }[] = [
+const TABS: { id: DetailTab; label: string; emoji: string; searchOnly?: boolean }[] = [
   { id: 'overview',  label: 'Overview',  emoji: '🏠' },
   { id: 'itinerary', label: 'Itinerary', emoji: '🗺️' },
   { id: 'packing',   label: 'Packing',   emoji: '🧳' },
-  { id: 'chat',      label: 'AI Chat',   emoji: '💬', aiOnly: true },
+  { id: 'map',       label: 'Map',       emoji: '📍' },
+  { id: 'chat',      label: 'AI Chat',   emoji: '💬', searchOnly: true },
+  { id: 'search',    label: 'Search',    emoji: '🔍', searchOnly: true },
 ];
 
 const STATUS_CYCLE: Record<Trip['status'], Trip['status']> = {
@@ -50,7 +55,8 @@ const STATUS_STYLE: Record<Trip['status'], string> = {
 export default function TripDetail({
   trip, activeTab, onTabChange, onBack, onDelete,
   onGenerateItinerary, onGeneratePackingList, onUpdateTrip,
-  getChatHistory, saveChatHistory, apiKey, hasAiKey, onSettingsClick,
+  getChatHistory, saveChatHistory,
+  perplexityKey, hasGenerationKey, hasSearchKey, onSettingsClick,
 }: Props) {
   const start = new Date(trip.startDate + 'T12:00:00');
   const end   = new Date(trip.endDate   + 'T12:00:00');
@@ -69,6 +75,7 @@ export default function TripDetail({
   const remaining         = trip.budget - totalEst;
   const budgetPct         = Math.min(100, trip.budget > 0 ? (totalEst / trip.budget) * 100 : 0);
   const overBudget        = remaining < 0;
+  const noAnyKey          = !hasGenerationKey && !hasSearchKey;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950 pb-16 md:pb-0">
@@ -88,7 +95,7 @@ export default function TripDetail({
               className="relative p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition"
               title="API Settings">
               <Settings className="w-4 h-4" />
-              {!hasAiKey && (
+              {noAnyKey && (
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
               )}
             </button>
@@ -136,14 +143,14 @@ export default function TripDetail({
 
         {/* Desktop-only tab bar */}
         <div className="hidden md:block relative max-w-5xl mx-auto px-6 pb-0">
-          <div className="flex gap-1 w-fit">
+          <div className="flex gap-1 w-fit overflow-x-auto">
             {TABS.map(tab => {
-              const locked = tab.aiOnly && !hasAiKey;
+              const locked = !!(tab.searchOnly && !hasSearchKey);
               return (
                 <button key={tab.id}
                   onClick={() => !locked && onTabChange(tab.id)}
                   disabled={locked}
-                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition flex items-center gap-1.5 ${
+                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
                     locked
                       ? 'text-white/30 cursor-not-allowed'
                       : activeTab === tab.id
@@ -239,11 +246,12 @@ export default function TripDetail({
             </div>
 
             {/* Quick-action cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { tab: 'itinerary' as DetailTab, emoji: '🗺️', title: 'Itinerary', desc: trip.itinerary.length ? `${days} days planned` : 'View & edit day-by-day', locked: false },
                 { tab: 'packing'   as DetailTab, emoji: '🧳', title: 'Packing',   desc: trip.packingList.length ? `${packedCount}/${trip.packingList.length} packed` : 'View packing list', locked: false },
-                { tab: 'chat'      as DetailTab, emoji: '💬', title: 'AI Chat',   desc: hasAiKey ? 'Ask anything about your trip' : 'Requires Perplexity API key', locked: !hasAiKey },
+                { tab: 'chat'      as DetailTab, emoji: '💬', title: 'AI Chat',   desc: hasSearchKey ? 'Ask anything about your trip' : 'Requires Perplexity key', locked: !hasSearchKey },
+                { tab: 'search'    as DetailTab, emoji: '🔍', title: 'Search',    desc: hasSearchKey ? 'Real-time flights, hotels, weather' : 'Requires Perplexity key', locked: !hasSearchKey },
               ].map(({ tab, emoji, title, desc, locked }) => (
                 <button key={tab}
                   onClick={() => !locked && onTabChange(tab)}
@@ -268,35 +276,43 @@ export default function TripDetail({
         )}
 
         {activeTab === 'itinerary' && (
-          <Itinerary trip={trip} onGenerate={onGenerateItinerary} onUpdate={onUpdateTrip} hasAiKey={hasAiKey} onSettingsClick={onSettingsClick} />
+          <Itinerary trip={trip} onGenerate={onGenerateItinerary} onUpdate={onUpdateTrip} hasAiKey={hasGenerationKey} onSettingsClick={onSettingsClick} />
         )}
 
         {activeTab === 'packing' && (
-          <PackingList trip={trip} onGenerate={onGeneratePackingList} onUpdate={onUpdateTrip} hasAiKey={hasAiKey} onSettingsClick={onSettingsClick} />
+          <PackingList trip={trip} onGenerate={onGeneratePackingList} onUpdate={onUpdateTrip} hasAiKey={hasGenerationKey} onSettingsClick={onSettingsClick} />
+        )}
+
+        {activeTab === 'map' && (
+          <TripMap trip={trip} />
         )}
 
         {activeTab === 'chat' && (
-          <AIChat trip={trip} apiKey={apiKey} hasAiKey={hasAiKey} onSettingsClick={onSettingsClick}
+          <AIChat trip={trip} perplexityKey={perplexityKey} hasAiKey={hasSearchKey} onSettingsClick={onSettingsClick}
             getChatHistory={getChatHistory} saveChatHistory={saveChatHistory} />
+        )}
+
+        {activeTab === 'search' && (
+          <TripSearch trip={trip} perplexityKey={perplexityKey} hasSearchKey={hasSearchKey} onSettingsClick={onSettingsClick} />
         )}
       </div>
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 backdrop-blur-md border-t border-gray-800">
-        <div className="flex items-center justify-around px-2 pt-1 pb-2">
+        <div className="flex items-center overflow-x-auto px-2 pt-1 pb-2 gap-1 scrollbar-hide">
           {TABS.map(tab => {
-            const locked = tab.aiOnly && !hasAiKey;
+            const locked = !!(tab.searchOnly && !hasSearchKey);
             return (
               <button key={tab.id}
                 onClick={() => !locked && onTabChange(tab.id)}
                 disabled={locked}
-                className={`flex flex-col items-center gap-0.5 flex-1 py-1.5 rounded-xl transition ${
+                className={`flex flex-col items-center gap-0.5 shrink-0 min-w-[52px] py-1.5 px-1 rounded-xl transition ${
                   locked
                     ? 'text-gray-700 cursor-not-allowed'
                     : activeTab === tab.id ? 'text-indigo-400' : 'text-gray-500'
                 }`}>
                 <span className={`text-xl leading-none ${locked ? 'grayscale opacity-40' : ''}`}>{tab.emoji}</span>
-                <span className="text-[10px] font-medium flex items-center gap-0.5">
+                <span className="text-[10px] font-medium flex items-center gap-0.5 whitespace-nowrap">
                   {tab.label}
                   {locked && <Lock className="w-2.5 h-2.5" />}
                 </span>

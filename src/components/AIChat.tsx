@@ -5,7 +5,7 @@ import { chatAboutTrip } from '../services/ai';
 
 interface Props {
   trip: Trip;
-  apiKey: string;
+  perplexityKey: string;
   hasAiKey: boolean;
   onSettingsClick: () => void;
   getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
@@ -25,7 +25,7 @@ function nanoid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export default function AIChat({ trip, apiKey, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
+export default function AIChat({ trip, perplexityKey, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ export default function AIChat({ trip, apiKey, hasAiKey, onSettingsClick, getCha
 
     try {
       const history = messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-      const reply = await chatAboutTrip(text.trim(), history, trip, apiKey);
+      const reply = await chatAboutTrip(text.trim(), history, trip, perplexityKey);
 
       const aiMsg: ChatMessage = {
         id: nanoid(),

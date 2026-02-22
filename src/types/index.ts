@@ -34,6 +34,8 @@ export interface Activity {
   description: string;
   category: 'accommodation' | 'transport' | 'food' | 'activity' | 'sightseeing' | 'free';
   estimatedCost: number;
+  lat?: number;
+  lng?: number;
 }
 
 export interface PackingItem {
@@ -53,4 +55,4 @@ export interface ChatMessage {
 }
 
 export type View = 'dashboard' | 'wizard' | 'detail';
-export type DetailTab = 'overview' | 'itinerary' | 'packing' | 'chat';
+export type DetailTab = 'overview' | 'itinerary' | 'packing' | 'chat' | 'map' | 'search';

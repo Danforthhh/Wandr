@@ -1,50 +1,109 @@
 import { Trip, ItineraryDay, PackingItem } from '../types';
 import { logActivity } from './activityLog';
 
-const API_URL = 'https://api.perplexity.ai/chat/completions';
-const MODEL = 'sonar-pro';
+// ─── Perplexity ───────────────────────────────────────────────────────────────
 
-type ApiMessage = { role: 'user' | 'assistant'; content: string };
+const PPLX_URL   = 'https://api.perplexity.ai/chat/completions';
+const PPLX_MODEL        = 'sonar-pro';
+const PPLX_SEARCH_MODEL = 'sonar';
+
+type ApiMessage  = { role: 'user' | 'assistant'; content: string };
 type FullMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
-// ─── Core API call ────────────────────────────────────────────────────────────
-
-async function callAPI(
+async function callPerplexity(
   messages: ApiMessage[],
   system: string,
   apiKey: string,
-  options: { maxTokens?: number } = {}
+  options: { maxTokens?: number; model?: string } = {}
 ): Promise<string> {
-  const { maxTokens = 8192 } = options;
+  const { maxTokens = 8192, model = PPLX_MODEL } = options;
+  const allMessages: FullMessage[] = [{ role: 'system', content: system }, ...messages];
 
-  const allMessages: FullMessage[] = [
-    { role: 'system', content: system },
-    ...messages,
-  ];
-
-  const res = await fetch(API_URL, {
+  const res = await fetch(PPLX_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: allMessages }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages: allMessages }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(err?.error?.message || `API error ${res.status}`);
+    throw new Error(err?.error?.message || `Perplexity API error ${res.status}`);
   }
 
   const data = await res.json() as { choices: { message: { content: string } }[] };
   return data.choices[0].message.content;
 }
 
+// ─── Claude ───────────────────────────────────────────────────────────────────
+
+const CLAUDE_URL   = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+
+async function callClaude(
+  userContent: string,
+  system: string,
+  apiKey: string,
+  options: { maxTokens?: number } = {}
+): Promise<string> {
+  const { maxTokens = 8192 } = options;
+
+  const res = await fetch(CLAUDE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: userContent }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new Error(err?.error?.message || `Claude API error ${res.status}`);
+  }
+
+  const data = await res.json() as { content: { type: string; text: string }[] };
+  const block = data.content.find(b => b.type === 'text');
+  if (!block) throw new Error('No text content in Claude response');
+  return block.text;
+}
+
+// ─── Routing helper ───────────────────────────────────────────────────────────
+// Prefers Claude Haiku for generation (cheaper, high quality), falls back to Perplexity
+
+async function callGeneration(
+  prompt: string,
+  system: string,
+  anthropicKey: string,
+  perplexityKey: string,
+  options: { maxTokens?: number } = {}
+): Promise<string> {
+  if (anthropicKey) {
+    return callClaude(prompt, system, anthropicKey, options);
+  }
+  return callPerplexity(
+    [{ role: 'user', content: prompt }],
+    system,
+    perplexityKey,
+    options
+  );
+}
+
+// ─── JSON parse helper ────────────────────────────────────────────────────────
+
 function parseJSON<T>(raw: string): T {
   try {
     return JSON.parse(raw) as T;
   } catch {
-    // Fallback: extract first complete JSON object/array
     const firstBrace   = raw.indexOf('{');
     const firstBracket = raw.indexOf('[');
     let start = -1, closeChar = '';
@@ -82,9 +141,10 @@ export async function generateTripDetails(params: {
   interests: string[];
   budget: number;
   travelers: number;
-  apiKey: string;
+  anthropicKey: string;
+  perplexityKey: string;
 }): Promise<TripOverview> {
-  const { destination, startDate, endDate, interests, budget, travelers, apiKey } = params;
+  const { destination, startDate, endDate, interests, budget, travelers, anthropicKey, perplexityKey } = params;
 
   logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
@@ -100,10 +160,11 @@ Fill in this JSON exactly (no other text):
 }`;
 
   try {
-    const text = await callAPI(
-      [{ role: 'user', content: prompt }],
+    const text = await callGeneration(
+      prompt,
       'You are a travel expert. Output valid JSON only, no other text.',
-      apiKey,
+      anthropicKey,
+      perplexityKey,
       { maxTokens: 512 }
     );
     const result = parseJSON<TripOverview>(text);
@@ -118,7 +179,11 @@ Fill in this JSON exactly (no other text):
 
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 
-export async function generateItinerary(trip: Trip, apiKey: string): Promise<ItineraryDay[]> {
+export async function generateItinerary(
+  trip: Trip,
+  anthropicKey: string,
+  perplexityKey: string
+): Promise<ItineraryDay[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
@@ -137,15 +202,16 @@ Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 
 Return a JSON array of ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","title":"Day theme","activities":[
-  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0}
+  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0,"lat":0.0000,"lng":0.0000}
 ]}
-Exactly 4 activities per day. Keep descriptions to 1 sentence.`;
+Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for each specific location. Keep descriptions to 1 sentence.`;
 
   try {
-    const text = await callAPI(
-      [{ role: 'user', content: prompt }],
+    const text = await callGeneration(
+      prompt,
       'Output valid JSON array only. No preamble, no explanation.',
-      apiKey,
+      anthropicKey,
+      perplexityKey,
       { maxTokens: 8192 }
     );
     const result = parseJSON<ItineraryDay[]>(text);
@@ -163,7 +229,11 @@ Exactly 4 activities per day. Keep descriptions to 1 sentence.`;
 
 // ─── Packing List ─────────────────────────────────────────────────────────────
 
-export async function generatePackingList(trip: Trip, apiKey: string): Promise<PackingItem[]> {
+export async function generatePackingList(
+  trip: Trip,
+  anthropicKey: string,
+  perplexityKey: string
+): Promise<PackingItem[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
@@ -177,10 +247,11 @@ Return a JSON array of exactly 25 items:
 Mark passport, medications as essential:true. Others essential:false.`;
 
   try {
-    const text = await callAPI(
-      [{ role: 'user', content: prompt }],
+    const text = await callGeneration(
+      prompt,
       'Output valid JSON array only.',
-      apiKey,
+      anthropicKey,
+      perplexityKey,
       { maxTokens: 3000 }
     );
     const result = parseJSON<PackingItem[]>(text);
@@ -199,7 +270,7 @@ export async function chatAboutTrip(
   userMessage: string,
   history: ApiMessage[],
   trip: Trip,
-  apiKey: string
+  perplexityKey: string
 ): Promise<string> {
   logActivity({ message: 'AI assistant responding…', status: 'pending' });
 
@@ -208,10 +279,10 @@ ${trip.travelers} traveler(s). Budget: ${trip.currency}${trip.budget}. Interests
 Be concise and specific. 2-4 sentences per answer.`;
 
   try {
-    const result = await callAPI(
+    const result = await callPerplexity(
       [...history, { role: 'user', content: userMessage }],
       system,
-      apiKey,
+      perplexityKey,
       { maxTokens: 1024 }
     );
     logActivity({ message: 'AI assistant replied', status: 'success' });
@@ -219,6 +290,33 @@ Be concise and specific. 2-4 sentences per answer.`;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     logActivity({ message: 'AI chat error', detail: msg, status: 'error' });
+    throw e;
+  }
+}
+
+// ─── Travel Search (Perplexity Sonar — real-time web) ────────────────────────
+
+export async function searchTravel(
+  query: string,
+  trip: Trip,
+  perplexityKey: string
+): Promise<string> {
+  logActivity({ message: 'Searching travel info…', status: 'pending' });
+
+  const system = `You are a real-time travel search assistant. The user is planning a trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate} with ${trip.travelers} traveler(s), budget ${trip.currency}${trip.budget}. Provide up-to-date, specific answers using web search. Be concise but thorough. Use clear sections when listing multiple items.`;
+
+  try {
+    const result = await callPerplexity(
+      [{ role: 'user', content: query }],
+      system,
+      perplexityKey,
+      { maxTokens: 2048, model: PPLX_SEARCH_MODEL }
+    );
+    logActivity({ message: 'Search complete', status: 'success' });
+    return result;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    logActivity({ message: 'Search failed', detail: msg, status: 'error' });
     throw e;
   }
 }
