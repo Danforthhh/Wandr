@@ -10,7 +10,15 @@ export default function ActivityLog() {
 
   useEffect(() => {
     setActivityListener((entry) => {
-      setEntries(prev => [...prev.slice(-49), entry]); // keep last 50
+      setEntries(prev => {
+        const idx = prev.findIndex(e => e.id === entry.id);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = entry;
+          return updated;
+        }
+        return [...prev.slice(-49), entry]; // keep last 50
+      });
       setHasNew(true);
       setTimeout(() => setHasNew(false), 2000);
     });

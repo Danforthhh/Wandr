@@ -1,4 +1,4 @@
-import { Trip, ItineraryDay, PackingItem, TripContext } from '../types';
+import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '../types';
 import { logActivity } from './activityLog';
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
@@ -231,7 +231,7 @@ export async function generateTripDetails(params: {
   const { destination, startDate, endDate, interests, budget, travelers,
           anthropicKey, context } = params;
 
-  logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
+  const actId = logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
   const prompt = `Trip to ${destination} (${startDate} → ${endDate}).
 Interests: ${interests.join(', ')}. Budget: $${budget}. Travelers: ${travelers}.
@@ -253,11 +253,11 @@ Fill in this JSON exactly (no other text):
       { maxTokens: 512 }
     );
     const result = parseJSON<TripOverview>(text);
-    logActivity({ message: `Trip "${result.name}" created`, status: 'success' });
+    logActivity({ message: `Trip "${result.name}" created`, status: 'success' }, actId);
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    logActivity({ message: 'Failed to create trip', detail: msg, status: 'error' });
+    logActivity({ message: 'Failed to create trip', detail: msg, status: 'error' }, actId);
     throw e;
   }
 }
@@ -271,7 +271,7 @@ export async function generateItinerary(
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
-  logActivity({ message: `Generating ${days}-day itinerary for ${trip.destination}…`, status: 'pending' });
+  const actId = logActivity({ message: `Generating ${days}-day itinerary for ${trip.destination}…`, status: 'pending' });
 
   const dates: string[] = [];
   for (let i = 0; i < days; i++) {
@@ -316,11 +316,11 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
     logActivity({
       message: `Itinerary ready — ${result.length} days, ${result.reduce((n, d) => n + d.activities.length, 0)} activities`,
       status: 'success',
-    });
+    }, actId);
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    logActivity({ message: 'Failed to generate itinerary', detail: msg, status: 'error' });
+    logActivity({ message: 'Failed to generate itinerary', detail: msg, status: 'error' }, actId);
     throw e;
   }
 }
@@ -334,7 +334,7 @@ export async function generatePackingList(
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
-  logActivity({ message: `Generating packing list for ${trip.destination}…`, status: 'pending' });
+  const actId = logActivity({ message: `Generating packing list for ${trip.destination}…`, status: 'pending' });
 
   const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
 
@@ -354,11 +354,11 @@ Mark passport, medications as essential:true. Others essential:false.`;
       { maxTokens: 3000 }
     );
     const result = asArray<PackingItem>(parseJSON<unknown>(text));
-    logActivity({ message: `Packing list ready — ${result.length} items`, status: 'success' });
+    logActivity({ message: `Packing list ready — ${result.length} items`, status: 'success' }, actId);
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    logActivity({ message: 'Failed to generate packing list', detail: msg, status: 'error' });
+    logActivity({ message: 'Failed to generate packing list', detail: msg, status: 'error' }, actId);
     throw e;
   }
 }
@@ -369,9 +369,11 @@ export async function chatAboutTrip(
   userMessage: string,
   history: ApiMessage[],
   trip: Trip,
-  perplexityKey: string
+  perplexityKey: string,
+  anthropicKey?: string,
+  attachments?: TripContextFile[]
 ): Promise<string> {
-  logActivity({ message: 'AI assistant responding…', status: 'pending' });
+  const actId = logActivity({ message: 'AI assistant responding…', status: 'pending' });
 
   const notesLine = trip.notes ? `\nTrip notes: ${trip.notes}` : '';
 
@@ -380,17 +382,33 @@ ${trip.travelers} traveler(s). Budget: ${trip.currency}${trip.budget}. Interests
 Be concise and specific. 2-4 sentences per answer.`;
 
   try {
-    const result = await callPerplexity(
-      [...history, { role: 'user', content: userMessage }],
-      system,
-      perplexityKey,
-      { maxTokens: 1024 }
-    );
-    logActivity({ message: 'AI assistant replied', status: 'success' });
+    let result: string;
+
+    // Use Claude when attachments are present (vision support) or when no Perplexity key
+    if ((attachments?.length || !perplexityKey) && anthropicKey) {
+      const content = buildClaudeContent(userMessage, attachments?.length ? { files: attachments } : undefined);
+      // Prepend history as text context since Claude messages need alternating roles
+      const historyContext = history.length
+        ? `Previous conversation:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\n\n`
+        : '';
+      const withHistory: ClaudeContentBlock[] = typeof content === 'string'
+        ? [{ type: 'text', text: historyContext + content }]
+        : [{ type: 'text', text: historyContext }, ...content];
+      result = await callClaude(withHistory, system, anthropicKey, { maxTokens: 1024 });
+    } else {
+      result = await callPerplexity(
+        [...history, { role: 'user', content: userMessage }],
+        system,
+        perplexityKey,
+        { maxTokens: 1024 }
+      );
+    }
+
+    logActivity({ message: 'AI assistant replied', status: 'success' }, actId);
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    logActivity({ message: 'AI chat error', detail: msg, status: 'error' });
+    logActivity({ message: 'AI chat error', detail: msg, status: 'error' }, actId);
     throw e;
   }
 }
@@ -402,7 +420,7 @@ export async function searchTravel(
   trip: Trip,
   perplexityKey: string
 ): Promise<string> {
-  logActivity({ message: 'Searching travel info…', status: 'pending' });
+  const actId = logActivity({ message: 'Searching travel info…', status: 'pending' });
 
   const system = `You are a real-time travel search assistant. The user is planning a trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate} with ${trip.travelers} traveler(s), budget ${trip.currency}${trip.budget}. Provide up-to-date, specific answers using web search. Be concise but thorough. Use clear sections when listing multiple items.`;
 
@@ -413,11 +431,11 @@ export async function searchTravel(
       perplexityKey,
       { maxTokens: 2048, model: PPLX_SEARCH_MODEL }
     );
-    logActivity({ message: 'Search complete', status: 'success' });
+    logActivity({ message: 'Search complete', status: 'success' }, actId);
     return result;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    logActivity({ message: 'Search failed', detail: msg, status: 'error' });
+    logActivity({ message: 'Search failed', detail: msg, status: 'error' }, actId);
     throw e;
   }
 }

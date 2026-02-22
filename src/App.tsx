@@ -226,6 +226,7 @@ export default function App() {
           getChatHistory={getChatHistory}
           saveChatHistory={saveChatHistory}
           perplexityKey={perplexityKey}
+          anthropicKey={anthropicKey}
           hasGenerationKey={hasGenerationKey}
           hasSearchKey={hasSearchKey}
           onSettingsClick={() => setShowKeyModal(true)}
