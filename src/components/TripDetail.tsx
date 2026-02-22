@@ -68,9 +68,9 @@ export default function TripDetail({
 
   const cycleStatus = () => onUpdateTrip({ ...trip, status: STATUS_CYCLE[trip.status] });
 
-  const activityCount     = trip.itinerary.reduce((n, d) => n + d.activities.length, 0);
+  const activityCount     = trip.itinerary.reduce((n, d) => n + (d.activities?.length ?? 0), 0);
   const packedCount       = trip.packingList.filter(i => i.packed).length;
-  const totalEstPerPerson = trip.itinerary.flatMap(d => d.activities).reduce((s, a) => s + (a.estimatedCost || 0), 0);
+  const totalEstPerPerson = trip.itinerary.flatMap(d => d.activities ?? []).reduce((s, a) => s + (a.estimatedCost || 0), 0);
   const totalEst          = totalEstPerPerson * trip.travelers;
   const remaining         = trip.budget - totalEst;
   const budgetPct         = Math.min(100, trip.budget > 0 ? (totalEst / trip.budget) * 100 : 0);

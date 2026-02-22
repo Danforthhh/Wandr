@@ -164,7 +164,19 @@ async function callGeneration(
   return callPerplexity([{ role: 'user', content: enriched }], system, perplexityKey, options);
 }
 
-// ─── JSON parse helper ────────────────────────────────────────────────────────
+// ─── JSON parse / shape helpers ───────────────────────────────────────────────
+
+// After parsing, unwrap arrays that Perplexity sometimes wraps in an object.
+// e.g. {"itinerary":[...]} or {"days":[...]} → returns the inner array.
+function asArray<T>(parsed: unknown): T[] {
+  if (Array.isArray(parsed)) return parsed as T[];
+  if (parsed && typeof parsed === 'object') {
+    for (const val of Object.values(parsed as Record<string, unknown>)) {
+      if (Array.isArray(val) && val.length > 0) return val as T[];
+    }
+  }
+  throw new Error(`AI returned an unexpected format. Please try again.`);
+}
 
 // Walk a string to find the closing bracket/brace that matches the opener at `start`.
 // Respects string literals and escape sequences so citation markers like [1] are ignored.
@@ -312,7 +324,9 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
       undefined,
       { maxTokens: 8192 }
     );
-    const result = parseJSON<ItineraryDay[]>(text);
+    const result = asArray<ItineraryDay>(parseJSON<unknown>(text))
+      .filter((day): day is ItineraryDay => day != null)
+      .map(day => ({ ...day, activities: Array.isArray(day.activities) ? day.activities : [] }));
     logActivity({
       message: `Itinerary ready — ${result.length} days, ${result.reduce((n, d) => n + d.activities.length, 0)} activities`,
       status: 'success',
@@ -355,7 +369,7 @@ Mark passport, medications as essential:true. Others essential:false.`;
       undefined,
       { maxTokens: 3000 }
     );
-    const result = parseJSON<PackingItem[]>(text);
+    const result = asArray<PackingItem>(parseJSON<unknown>(text));
     logActivity({ message: `Packing list ready — ${result.length} items`, status: 'success' });
     return result;
   } catch (e: unknown) {

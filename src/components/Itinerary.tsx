@@ -178,7 +178,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   };
 
   // ── Budget calcs ──────────────────────────────────────────────────────────
-  const allActivities = trip.itinerary.flatMap(d => d.activities);
+  const allActivities = trip.itinerary.flatMap(d => d.activities ?? []);
   const totalEstPerPerson = allActivities.reduce((s, a) => s + (a.estimatedCost || 0), 0);
   const totalEst = totalEstPerPerson * trip.travelers;
   const remaining = trip.budget - totalEst;
@@ -336,7 +336,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
             </div>
             {/* Day cost */}
             {(() => {
-              const dayCost = day.activities.reduce((s, a) => s + (a.estimatedCost || 0), 0) * trip.travelers;
+              const dayCost = (day.activities ?? []).reduce((s, a) => s + (a.estimatedCost || 0), 0) * trip.travelers;
               return dayCost > 0 ? (
                 <span className="text-xs text-gray-400 bg-gray-800 px-3 py-1.5 rounded-lg shrink-0 ml-3 font-medium">
                   {trip.currency} {dayCost.toLocaleString()} est.
@@ -347,7 +347,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
 
           {/* Activities */}
           <div className="space-y-2.5">
-            {day.activities.map((act: Activity) => {
+            {(day.activities ?? []).map((act: Activity) => {
               const { Icon, cls } = CATEGORY_STYLE[act.category] ?? CATEGORY_STYLE.free;
 
               if (editingId === act.id) {
@@ -403,7 +403,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
             })}
 
             {/* Inline form for a brand-new activity */}
-            {editingId && !day.activities.find(a => a.id === editingId) && (
+            {editingId && !(day.activities ?? []).find(a => a.id === editingId) && (
               <ActivityEditForm
                 value={editForm}
                 onChange={setEditForm}
