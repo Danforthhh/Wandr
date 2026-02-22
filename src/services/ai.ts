@@ -1,9 +1,9 @@
-import { Trip, ItineraryDay, PackingItem } from '../types';
+import { Trip, ItineraryDay, PackingItem, TripContext } from '../types';
 import { logActivity } from './activityLog';
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
-const PPLX_URL   = 'https://api.perplexity.ai/chat/completions';
+const PPLX_URL         = 'https://api.perplexity.ai/chat/completions';
 const PPLX_MODEL        = 'sonar-pro';
 const PPLX_SEARCH_MODEL = 'sonar';
 
@@ -42,8 +42,13 @@ async function callPerplexity(
 const CLAUDE_URL   = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
+type ClaudeContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+  | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string } };
+
 async function callClaude(
-  userContent: string,
+  userContent: string | ClaudeContentBlock[],
   system: string,
   apiKey: string,
   options: { maxTokens?: number } = {}
@@ -77,25 +82,74 @@ async function callClaude(
   return block.text;
 }
 
+// ─── Context → Claude content blocks ─────────────────────────────────────────
+
+function buildClaudeContent(prompt: string, context?: TripContext): string | ClaudeContentBlock[] {
+  if (!context?.text && !context?.files?.length) return prompt;
+
+  const files     = context.files ?? [];
+  const imgFiles  = files.filter(f => f.mimeType.startsWith('image/'));
+  const pdfFiles  = files.filter(f => f.mimeType === 'application/pdf');
+  const txtFiles  = files.filter(f => f.mimeType === 'text/plain' || f.mimeType === 'text/markdown');
+
+  // No binary files → return enriched text
+  if (!imgFiles.length && !pdfFiles.length) {
+    let enriched = '';
+    if (context.text) enriched += `User notes: ${context.text}\n\n`;
+    for (const f of txtFiles) {
+      try { enriched += `--- ${f.name} ---\n${atob(f.dataBase64)}\n\n`; } catch { /* skip */ }
+    }
+    return enriched + prompt;
+  }
+
+  // Build multimodal array
+  const blocks: ClaudeContentBlock[] = [];
+  for (const f of imgFiles) {
+    blocks.push({ type: 'image', source: { type: 'base64', media_type: f.mimeType, data: f.dataBase64 } });
+  }
+  for (const f of pdfFiles) {
+    blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.dataBase64 } });
+  }
+
+  let text = '';
+  if (context.text) text += `User notes: ${context.text}\n\n`;
+  for (const f of txtFiles) {
+    try { text += `--- ${f.name} ---\n${atob(f.dataBase64)}\n\n`; } catch { /* skip */ }
+  }
+  text += prompt;
+  blocks.push({ type: 'text', text });
+
+  return blocks;
+}
+
 // ─── Routing helper ───────────────────────────────────────────────────────────
-// Prefers Claude Haiku for generation (cheaper, high quality), falls back to Perplexity
 
 async function callGeneration(
   prompt: string,
   system: string,
   anthropicKey: string,
   perplexityKey: string,
+  context?: TripContext,
   options: { maxTokens?: number } = {}
 ): Promise<string> {
   if (anthropicKey) {
-    return callClaude(prompt, system, anthropicKey, options);
+    const content = buildClaudeContent(prompt, context);
+    return callClaude(content, system, anthropicKey, options);
   }
-  return callPerplexity(
-    [{ role: 'user', content: prompt }],
-    system,
-    perplexityKey,
-    options
+  // Perplexity: text notes + text files only (images/PDFs silently dropped)
+  let enriched = prompt;
+  if (context?.text) enriched = `User notes: ${context.text}\n\n${prompt}`;
+  const txtFiles = (context?.files ?? []).filter(
+    f => f.mimeType === 'text/plain' || f.mimeType === 'text/markdown'
   );
+  if (txtFiles.length) {
+    let extra = '';
+    for (const f of txtFiles) {
+      try { extra += `--- ${f.name} ---\n${atob(f.dataBase64)}\n\n`; } catch { /* skip */ }
+    }
+    enriched = extra + enriched;
+  }
+  return callPerplexity([{ role: 'user', content: enriched }], system, perplexityKey, options);
 }
 
 // ─── JSON parse helper ────────────────────────────────────────────────────────
@@ -143,8 +197,10 @@ export async function generateTripDetails(params: {
   travelers: number;
   anthropicKey: string;
   perplexityKey: string;
+  context?: TripContext;
 }): Promise<TripOverview> {
-  const { destination, startDate, endDate, interests, budget, travelers, anthropicKey, perplexityKey } = params;
+  const { destination, startDate, endDate, interests, budget, travelers,
+          anthropicKey, perplexityKey, context } = params;
 
   logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
@@ -165,6 +221,7 @@ Fill in this JSON exactly (no other text):
       'You are a travel expert. Output valid JSON only, no other text.',
       anthropicKey,
       perplexityKey,
+      context,
       { maxTokens: 512 }
     );
     const result = parseJSON<TripOverview>(text);
@@ -196,9 +253,11 @@ export async function generateItinerary(
     dates.push(d.toISOString().split('T')[0]);
   }
 
+  const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
+
   const prompt = `Create a ${days}-day itinerary for ${trip.destination}.
 Dates: ${dates.join(', ')}. Interests: ${trip.interests.join(', ')}.
-Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
+Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).${notesLine}
 
 Return a JSON array of ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","title":"Day theme","activities":[
@@ -212,6 +271,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
       'Output valid JSON array only. No preamble, no explanation.',
       anthropicKey,
       perplexityKey,
+      undefined,
       { maxTokens: 8192 }
     );
     const result = parseJSON<ItineraryDay[]>(text);
@@ -239,8 +299,10 @@ export async function generatePackingList(
 
   logActivity({ message: `Generating packing list for ${trip.destination}…`, status: 'pending' });
 
+  const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
+
   const prompt = `Packing list for ${days}-day trip to ${trip.destination}.
-Activities: ${trip.interests.join(', ')}. Travelers: ${trip.travelers}.
+Activities: ${trip.interests.join(', ')}. Travelers: ${trip.travelers}.${notesLine}
 
 Return a JSON array of exactly 25 items:
 [{"id":"item-N","name":"Item","category":"Documents|Clothing|Toiletries|Electronics|Health & Safety|Activities|Miscellaneous","packed":false,"quantity":1,"essential":true}]
@@ -252,6 +314,7 @@ Mark passport, medications as essential:true. Others essential:false.`;
       'Output valid JSON array only.',
       anthropicKey,
       perplexityKey,
+      undefined,
       { maxTokens: 3000 }
     );
     const result = parseJSON<PackingItem[]>(text);
@@ -274,8 +337,10 @@ export async function chatAboutTrip(
 ): Promise<string> {
   logActivity({ message: 'AI assistant responding…', status: 'pending' });
 
+  const notesLine = trip.notes ? `\nTrip notes: ${trip.notes}` : '';
+
   const system = `You are a travel assistant for a trip to ${trip.destination} (${trip.startDate} → ${trip.endDate}).
-${trip.travelers} traveler(s). Budget: ${trip.currency}${trip.budget}. Interests: ${trip.interests.join(', ')}.
+${trip.travelers} traveler(s). Budget: ${trip.currency}${trip.budget}. Interests: ${trip.interests.join(', ')}.${notesLine}
 Be concise and specific. 2-4 sentences per answer.`;
 
   try {

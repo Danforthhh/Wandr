@@ -1,5 +1,19 @@
 export type TripStatus = 'planning' | 'upcoming' | 'completed';
 
+export interface TripContextFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  dataBase64: string;
+  previewUrl?: string;
+  size: number;
+}
+
+export interface TripContext {
+  text?: string;
+  files?: TripContextFile[];
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -13,6 +27,7 @@ export interface Trip {
   currency: string;
   interests: string[];
   description: string;
+  notes?: string;
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
   status: TripStatus;

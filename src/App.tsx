@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
-import { Trip, View, DetailTab, ChatMessage } from './types';
+import { Trip, View, DetailTab, ChatMessage, TripContext } from './types';
 import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
 import {
@@ -84,8 +84,11 @@ export default function App() {
     budget: number;
     currency: string;
     interests: string[];
+    context?: TripContext;
   }): Promise<Trip> => {
-    const details = await generateTripDetails({ ...params, anthropicKey, perplexityKey });
+    const details = await generateTripDetails({
+      ...params, anthropicKey, perplexityKey, context: params.context,
+    });
 
     const trip: Trip = {
       id:            nanoid(),
@@ -101,6 +104,7 @@ export default function App() {
       budget:        params.budget,
       currency:      params.currency,
       interests:     params.interests,
+      notes:         params.context?.text || undefined,
       itinerary:     [],
       packingList:   [],
       status:        'planning',
@@ -201,6 +205,7 @@ export default function App() {
           onBack={() => setView('dashboard')}
           onCreate={handleCreateTrip}
           hasAiKey={hasGenerationKey}
+          hasClaudeKey={!!anthropicKey}
           onSettingsClick={() => setShowKeyModal(true)}
         />
       )}
