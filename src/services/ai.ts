@@ -166,6 +166,25 @@ async function callGeneration(
 
 // ─── JSON parse helper ────────────────────────────────────────────────────────
 
+// Walk a string to find the closing bracket/brace that matches the opener at `start`.
+// Respects string literals and escape sequences so citation markers like [1] are ignored.
+function extractBalanced(text: string, start: number, open: string, close: string): string | null {
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') { i++; continue; } // skip escaped char
+      if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === open)  { depth++; continue; }
+    if (ch === close) { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return null;
+}
+
 function parseJSON<T>(raw: string): T {
   // Strip markdown code fences that Perplexity/Claude sometimes add
   const stripped = raw
@@ -178,13 +197,14 @@ function parseJSON<T>(raw: string): T {
     // 1. Direct parse
     try { return JSON.parse(candidate) as T; } catch { /* try next strategy */ }
 
-    // 2. Extract outermost JSON object or array
+    // 2. Extract outermost JSON object or array using balanced-bracket walk
+    //    (avoids being fooled by Perplexity citation markers like [1] after the JSON)
     for (const [open, close] of [['{', '}'], ['[', ']']] as const) {
       const start = candidate.indexOf(open);
       if (start === -1) continue;
-      const end = candidate.lastIndexOf(close);
-      if (end <= start) continue;
-      try { return JSON.parse(candidate.slice(start, end + 1)) as T; } catch { /* try next */ }
+      const extracted = extractBalanced(candidate, start, open, close);
+      if (!extracted) continue;
+      try { return JSON.parse(extracted) as T; } catch { /* try next */ }
     }
   }
 
