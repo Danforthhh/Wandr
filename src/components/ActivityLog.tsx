@@ -2,17 +2,66 @@ import { useState, useEffect, useRef } from 'react';
 import { ActivityEntry, setActivityListener } from '../services/activityLog';
 import { Loader2, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, Trash2 } from 'lucide-react';
 
+// Play a gentle two-tone chime using Web Audio API
+function playChime() {
+  try {
+    const ctx = new AudioContext();
+    const play = (freq: number, start: number, dur: number) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur);
+    };
+    play(880, 0,    0.5);   // A5
+    play(1320, 0.18, 0.6);  // E6
+    setTimeout(() => ctx.close(), 1200);
+  } catch { /* AudioContext not available */ }
+}
+
 export default function ActivityLog() {
   const [entries, setEntries]     = useState<ActivityEntry[]>([]);
   const [expanded, setExpanded]   = useState(true);
   const [hasNew, setHasNew]       = useState(false);
   const bottomRef                 = useRef<HTMLDivElement>(null);
+  const chimeTimer                = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelChime = () => {
+    if (chimeTimer.current) { clearTimeout(chimeTimer.current); chimeTimer.current = null; }
+  };
+
+  const scheduleChime = () => {
+    cancelChime();
+    chimeTimer.current = setTimeout(() => { playChime(); chimeTimer.current = null; }, 10_000);
+  };
+
+  // Cancel chime on any user interaction
+  useEffect(() => {
+    const cancel = () => cancelChime();
+    window.addEventListener('pointerdown', cancel);
+    window.addEventListener('keydown', cancel);
+    return () => {
+      window.removeEventListener('pointerdown', cancel);
+      window.removeEventListener('keydown', cancel);
+    };
+  }, []);
 
   useEffect(() => {
     setActivityListener((entry) => {
       setEntries(prev => {
         const idx = prev.findIndex(e => e.id === entry.id);
         if (idx !== -1) {
+          const prevEntry = prev[idx];
+          // Pending → done: schedule an idle chime
+          if (prevEntry.status === 'pending' && entry.status !== 'pending') {
+            scheduleChime();
+          }
           const updated = [...prev];
           updated[idx] = entry;
           return updated;

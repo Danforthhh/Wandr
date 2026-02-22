@@ -1,5 +1,6 @@
 import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '../types';
 import { logActivity } from './activityLog';
+import { logger } from './logger';
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
@@ -19,6 +20,11 @@ async function callPerplexity(
   const { maxTokens = 8192, model = PPLX_MODEL } = options;
   const allMessages: FullMessage[] = [{ role: 'system', content: system }, ...messages];
 
+  logger.debug('ai.perplexity', `Request → ${model}`, {
+    model, maxTokens,
+    lastUserMessage: messages[messages.length - 1]?.content?.slice(0, 200),
+  });
+
   const res = await fetch(PPLX_URL, {
     method: 'POST',
     headers: {
@@ -30,11 +36,15 @@ async function callPerplexity(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(err?.error?.message || `Perplexity API error ${res.status}`);
+    const msg = err?.error?.message || `Perplexity API error ${res.status}`;
+    logger.error('ai.perplexity', `HTTP ${res.status}`, { status: res.status, message: msg });
+    throw new Error(msg);
   }
 
   const data = await res.json() as { choices: { message: { content: string } }[] };
-  return data.choices[0].message.content;
+  const text = data.choices[0].message.content;
+  logger.debug('ai.perplexity', `Response (${text.length} chars)`, { preview: text.slice(0, 300) });
+  return text;
 }
 
 // ─── Claude ───────────────────────────────────────────────────────────────────
@@ -55,6 +65,15 @@ async function callClaude(
 ): Promise<string> {
   const { maxTokens = 8192 } = options;
 
+  const preview = typeof userContent === 'string'
+    ? userContent.slice(0, 200)
+    : userContent.filter(b => b.type === 'text').map(b => (b as { type: 'text'; text: string }).text).join(' ').slice(0, 200);
+  logger.debug('ai.claude', `Request → ${CLAUDE_MODEL}`, {
+    model: CLAUDE_MODEL, maxTokens,
+    blocks: Array.isArray(userContent) ? userContent.map(b => b.type) : 'text',
+    preview,
+  });
+
   const res = await fetch(CLAUDE_URL, {
     method: 'POST',
     headers: {
@@ -74,6 +93,7 @@ async function callClaude(
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
     const raw = err?.error?.message || `Claude API error ${res.status}`;
+    logger.error('ai.claude', `HTTP ${res.status}`, { status: res.status, message: raw });
     if (res.status === 401 || raw.toLowerCase().includes('api-key') || raw.toLowerCase().includes('authentication')) {
       throw new Error('Invalid Claude API key — please check your Anthropic key in Settings.');
     }
@@ -83,6 +103,7 @@ async function callClaude(
   const data = await res.json() as { content: { type: string; text: string }[] };
   const block = data.content.find(b => b.type === 'text');
   if (!block) throw new Error('No text content in Claude response');
+  logger.debug('ai.claude', `Response (${block.text.length} chars)`, { preview: block.text.slice(0, 300) });
   return block.text;
 }
 
@@ -206,6 +227,7 @@ function parseJSON<T>(raw: string): T {
     }
   }
 
+  logger.error('ai.parse', 'JSON parse failed — full raw response below', { raw });
   throw new Error('AI returned an unexpected format. Please try again.');
 }
 
