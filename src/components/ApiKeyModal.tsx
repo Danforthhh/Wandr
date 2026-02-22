@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Key, ExternalLink, LogOut, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Key, ExternalLink, LogOut, Loader2, Eye, EyeOff, Wallet } from 'lucide-react';
 import { ApiKeys } from '../services/firestore';
 
 interface Props {
@@ -94,17 +94,30 @@ export default function ApiKeyModal({ onSave, existing, onClose, onLogout, onDel
               </button>
             </div>
             <p className="mt-1.5 text-xs text-gray-500">
-              Used for itinerary generation, packing lists, and AI chat.
+              Used for travel search and AI chat.
             </p>
-            <a
-              href="https://www.perplexity.ai/settings/api"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 mt-1 text-xs text-indigo-400 hover:text-indigo-300 transition"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Get your Perplexity key
-            </a>
+            <div className="flex items-center gap-3 mt-1.5">
+              <a
+                href="https://www.perplexity.ai/settings/api"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Get your key
+              </a>
+              {existing.perplexityKey && (
+                <a
+                  href="https://www.perplexity.ai/account/api/group"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition"
+                >
+                  <Wallet className="w-3 h-3" />
+                  Check balance
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Anthropic key */}
@@ -132,17 +145,30 @@ export default function ApiKeyModal({ onSave, existing, onClose, onLogout, onDel
               </button>
             </div>
             <p className="mt-1.5 text-xs text-gray-500">
-              For Claude-powered features.
+              Used for trip generation, itinerary, packing lists, and AI chat.
             </p>
-            <a
-              href="https://console.anthropic.com/settings/keys"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 mt-1 text-xs text-indigo-400 hover:text-indigo-300 transition"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Get your Anthropic key
-            </a>
+            <div className="flex items-center gap-3 mt-1.5">
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Get your key
+              </a>
+              {existing.anthropicKey && (
+                <a
+                  href="https://console.anthropic.com/settings/billing"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition"
+                >
+                  <Wallet className="w-3 h-3" />
+                  Check balance
+                </a>
+              )}
+            </div>
           </div>
 
           <button
