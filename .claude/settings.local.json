@@ -12,7 +12,8 @@
       "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx firebase-tools login:*)",
       "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
       "Bash(npx firebase-tools:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run deploy:*)"
     ]
   }
 }

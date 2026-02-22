@@ -90,7 +90,7 @@ export default function App() {
     context?: TripContext;
   }): Promise<Trip> => {
     const details = await generateTripDetails({
-      ...params, anthropicKey, perplexityKey, context: params.context,
+      ...params, anthropicKey, context: params.context,
     });
 
     const trip: Trip = {
@@ -138,14 +138,14 @@ export default function App() {
   // ── AI generation ──────────────────────────────────────────────────────────
 
   const handleGenerateItinerary = async (trip: Trip): Promise<Trip> => {
-    const itinerary = await generateItinerary(trip, anthropicKey, perplexityKey);
+    const itinerary = await generateItinerary(trip, anthropicKey);
     const updated = { ...trip, itinerary };
     await handleUpdateTrip(updated);
     return updated;
   };
 
   const handleGeneratePackingList = async (trip: Trip): Promise<Trip> => {
-    const packingList = await generatePackingList(trip, anthropicKey, perplexityKey);
+    const packingList = await generatePackingList(trip, anthropicKey);
     const updated = { ...trip, packingList };
     await handleUpdateTrip(updated);
     return updated;
@@ -171,9 +171,9 @@ export default function App() {
 
   if (!user) return <AuthPage />;
 
-  // Generation needs at least one key (Claude or Perplexity)
-  const hasGenerationKey = !!(anthropicKey || perplexityKey);
-  // Search and chat need Perplexity (real-time web data)
+  // Generation (trip details, itinerary, packing) uses Claude only
+  const hasGenerationKey = !!anthropicKey;
+  // Search and chat use Perplexity for real-time web data
   const hasSearchKey = !!perplexityKey;
 
   return (

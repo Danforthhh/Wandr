@@ -126,42 +126,22 @@ function buildClaudeContent(prompt: string, context?: TripContext): string | Cla
   return blocks;
 }
 
-// ─── Routing helper ───────────────────────────────────────────────────────────
+// ─── Generation helper (Claude only) ─────────────────────────────────────────
+// Trip creation, itinerary, and packing list always use Claude for reliable
+// structured JSON output. Chat and search use Perplexity for real-time web data.
 
 async function callGeneration(
   prompt: string,
   system: string,
   anthropicKey: string,
-  perplexityKey: string,
   context?: TripContext,
   options: { maxTokens?: number } = {}
 ): Promise<string> {
-  if (anthropicKey) {
-    try {
-      const content = buildClaudeContent(prompt, context);
-      return await callClaude(content, system, anthropicKey, options);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : '';
-      const isAuthError = msg.includes('Invalid Claude API key') || msg.includes('401');
-      // Fall back to Perplexity on auth errors only (if available)
-      if (!isAuthError || !perplexityKey) throw e;
-      logActivity({ message: 'Claude key invalid — using Perplexity', status: 'pending' });
-    }
+  if (!anthropicKey) {
+    throw new Error('An Anthropic (Claude) API key is required to generate content. Please add it in Settings.');
   }
-  // Perplexity: text notes + text files only (images/PDFs silently dropped)
-  let enriched = prompt;
-  if (context?.text) enriched = `User notes: ${context.text}\n\n${prompt}`;
-  const txtFiles = (context?.files ?? []).filter(
-    f => f.mimeType === 'text/plain' || f.mimeType === 'text/markdown'
-  );
-  if (txtFiles.length) {
-    let extra = '';
-    for (const f of txtFiles) {
-      try { extra += `--- ${f.name} ---\n${atob(f.dataBase64)}\n\n`; } catch { /* skip */ }
-    }
-    enriched = extra + enriched;
-  }
-  return callPerplexity([{ role: 'user', content: enriched }], system, perplexityKey, options);
+  const content = buildClaudeContent(prompt, context);
+  return callClaude(content, system, anthropicKey, options);
 }
 
 // ─── JSON parse / shape helpers ───────────────────────────────────────────────
@@ -246,11 +226,10 @@ export async function generateTripDetails(params: {
   budget: number;
   travelers: number;
   anthropicKey: string;
-  perplexityKey: string;
   context?: TripContext;
 }): Promise<TripOverview> {
   const { destination, startDate, endDate, interests, budget, travelers,
-          anthropicKey, perplexityKey, context } = params;
+          anthropicKey, context } = params;
 
   logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
@@ -268,9 +247,8 @@ Fill in this JSON exactly (no other text):
   try {
     const text = await callGeneration(
       prompt,
-      'You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation, no citations. Raw JSON only.',
+      'You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation. Raw JSON only.',
       anthropicKey,
-      perplexityKey,
       context,
       { maxTokens: 512 }
     );
@@ -288,8 +266,7 @@ Fill in this JSON exactly (no other text):
 
 export async function generateItinerary(
   trip: Trip,
-  anthropicKey: string,
-  perplexityKey: string
+  anthropicKey: string
 ): Promise<ItineraryDay[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
@@ -318,15 +295,24 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
   try {
     const text = await callGeneration(
       prompt,
-      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation, no citations. Raw JSON array only.',
+      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
       anthropicKey,
-      perplexityKey,
       undefined,
       { maxTokens: 8192 }
     );
     const result = asArray<ItineraryDay>(parseJSON<unknown>(text))
       .filter((day): day is ItineraryDay => day != null)
-      .map(day => ({ ...day, activities: Array.isArray(day.activities) ? day.activities : [] }));
+      .map((day, i) => {
+        // Recompute date from trip start + index — Perplexity often returns
+        // non-ISO date strings ("October 10, 2026") that break new Date().
+        const d = new Date(trip.startDate + 'T12:00:00');
+        d.setDate(d.getDate() + i);
+        return {
+          ...day,
+          date: d.toISOString().split('T')[0],
+          activities: Array.isArray(day.activities) ? day.activities : [],
+        };
+      });
     logActivity({
       message: `Itinerary ready — ${result.length} days, ${result.reduce((n, d) => n + d.activities.length, 0)} activities`,
       status: 'success',
@@ -343,8 +329,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
 
 export async function generatePackingList(
   trip: Trip,
-  anthropicKey: string,
-  perplexityKey: string
+  anthropicKey: string
 ): Promise<PackingItem[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
@@ -363,9 +348,8 @@ Mark passport, medications as essential:true. Others essential:false.`;
   try {
     const text = await callGeneration(
       prompt,
-      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation, no citations. Raw JSON array only.',
+      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
       anthropicKey,
-      perplexityKey,
       undefined,
       { maxTokens: 3000 }
     );
