@@ -197,11 +197,17 @@ function parseJSON<T>(raw: string): T {
     // 1. Direct parse
     try { return JSON.parse(candidate) as T; } catch { /* try next strategy */ }
 
-    // 2. Extract outermost JSON object or array using balanced-bracket walk
-    //    (avoids being fooled by Perplexity citation markers like [1] after the JSON)
-    for (const [open, close] of [['{', '}'], ['[', ']']] as const) {
-      const start = candidate.indexOf(open);
-      if (start === -1) continue;
+    // 2. Extract outermost JSON structure using balanced-bracket walk.
+    //    Try whichever bracket type ({ or [) appears first in the text,
+    //    so an array response isn't mistakenly parsed as its first child object.
+    const objIdx = candidate.indexOf('{');
+    const arrIdx = candidate.indexOf('[');
+    const pairs: Array<[number, string, string]> = [];
+    if (objIdx !== -1) pairs.push([objIdx, '{', '}']);
+    if (arrIdx !== -1) pairs.push([arrIdx, '[', ']']);
+    pairs.sort((a, b) => a[0] - b[0]); // leftmost structure first
+
+    for (const [start, open, close] of pairs) {
       const extracted = extractBalanced(candidate, start, open, close);
       if (!extracted) continue;
       try { return JSON.parse(extracted) as T; } catch { /* try next */ }
