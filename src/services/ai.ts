@@ -73,7 +73,11 @@ async function callClaude(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    throw new Error(err?.error?.message || `Claude API error ${res.status}`);
+    const raw = err?.error?.message || `Claude API error ${res.status}`;
+    if (res.status === 401 || raw.toLowerCase().includes('api-key') || raw.toLowerCase().includes('authentication')) {
+      throw new Error('Invalid Claude API key — please check your Anthropic key in Settings.');
+    }
+    throw new Error(raw);
   }
 
   const data = await res.json() as { content: { type: string; text: string }[] };
@@ -133,8 +137,16 @@ async function callGeneration(
   options: { maxTokens?: number } = {}
 ): Promise<string> {
   if (anthropicKey) {
-    const content = buildClaudeContent(prompt, context);
-    return callClaude(content, system, anthropicKey, options);
+    try {
+      const content = buildClaudeContent(prompt, context);
+      return await callClaude(content, system, anthropicKey, options);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      const isAuthError = msg.includes('Invalid Claude API key') || msg.includes('401');
+      // Fall back to Perplexity on auth errors only (if available)
+      if (!isAuthError || !perplexityKey) throw e;
+      logActivity({ message: 'Claude key invalid — using Perplexity', status: 'pending' });
+    }
   }
   // Perplexity: text notes + text files only (images/PDFs silently dropped)
   let enriched = prompt;
@@ -155,28 +167,28 @@ async function callGeneration(
 // ─── JSON parse helper ────────────────────────────────────────────────────────
 
 function parseJSON<T>(raw: string): T {
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    const firstBrace   = raw.indexOf('{');
-    const firstBracket = raw.indexOf('[');
-    let start = -1, closeChar = '';
+  // Strip markdown code fences that Perplexity/Claude sometimes add
+  const stripped = raw
+    .replace(/^```(?:json|JSON)?\s*/m, '')
+    .replace(/```\s*$/m, '')
+    .trim();
 
-    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-      start = firstBrace; closeChar = '}';
-    } else if (firstBracket !== -1) {
-      start = firstBracket; closeChar = ']';
-    }
+  // Try candidates in order: stripped, original
+  for (const candidate of [stripped, raw]) {
+    // 1. Direct parse
+    try { return JSON.parse(candidate) as T; } catch { /* try next strategy */ }
 
-    if (start !== -1) {
-      const end = raw.lastIndexOf(closeChar);
-      if (end > start) {
-        try { return JSON.parse(raw.slice(start, end + 1)) as T; }
-        catch { /* fall through */ }
-      }
+    // 2. Extract outermost JSON object or array
+    for (const [open, close] of [['{', '}'], ['[', ']']] as const) {
+      const start = candidate.indexOf(open);
+      if (start === -1) continue;
+      const end = candidate.lastIndexOf(close);
+      if (end <= start) continue;
+      try { return JSON.parse(candidate.slice(start, end + 1)) as T; } catch { /* try next */ }
     }
-    throw new Error('AI returned an unexpected format. Please try again.');
   }
+
+  throw new Error('AI returned an unexpected format. Please try again.');
 }
 
 // ─── Trip Overview ────────────────────────────────────────────────────────────
@@ -218,7 +230,7 @@ Fill in this JSON exactly (no other text):
   try {
     const text = await callGeneration(
       prompt,
-      'You are a travel expert. Output valid JSON only, no other text.',
+      'You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation, no citations. Raw JSON only.',
       anthropicKey,
       perplexityKey,
       context,
@@ -268,7 +280,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
   try {
     const text = await callGeneration(
       prompt,
-      'Output valid JSON array only. No preamble, no explanation.',
+      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation, no citations. Raw JSON array only.',
       anthropicKey,
       perplexityKey,
       undefined,
@@ -311,7 +323,7 @@ Mark passport, medications as essential:true. Others essential:false.`;
   try {
     const text = await callGeneration(
       prompt,
-      'Output valid JSON array only.',
+      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation, no citations. Raw JSON array only.',
       anthropicKey,
       perplexityKey,
       undefined,
