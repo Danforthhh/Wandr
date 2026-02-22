@@ -5,7 +5,14 @@
       "Bash(git config:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cmd.exe /c \"cd C:\\\\Code\\\\Wandr\\\\Wandr && npm run build && echo BUILD_SUCCESS\")",
+      "Bash(powershell.exe -Command \"Set-Location ''C:\\\\Code\\\\Wandr\\\\Wandr''; npm run build 2>&1\")",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx:*)",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" npx firebase-tools login:*)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npx firebase-tools:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

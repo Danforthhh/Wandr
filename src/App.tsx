@@ -45,7 +45,10 @@ export default function App() {
     }
 
     let cancelled = false;
-    Promise.all([getTrips(user.uid), getApiKeys(user.uid)]).then(([loadedTrips, loadedKeys]) => {
+    Promise.all([
+      getTrips(user.uid).catch((): Trip[] => []),
+      getApiKeys(user.uid).catch(() => ({ perplexityKey: '', anthropicKey: '' })),
+    ]).then(([loadedTrips, loadedKeys]) => {
       if (cancelled) return;
       setTrips(loadedTrips);
       setPerplexityKey(loadedKeys.perplexityKey);
