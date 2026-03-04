@@ -1,6 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Copy, Trash2, ChevronDown, ChevronRight, Bug } from 'lucide-react';
-import { LogEntry, LogLevel, getLogs, clearLogs, setLogListener } from '../services/logger';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Copy, Trash2, ChevronDown, ChevronRight, Bug, Download, Database } from 'lucide-react';
+import {
+  LogEntry, LogLevel,
+  getLogs, clearLogs,
+  setLogListener, removeLogListener,
+  exportLogs, downloadLogs,
+  isPersistEnabled, setPersist,
+} from '../services/logger';
 
 const LEVEL_STYLE: Record<LogLevel, string> = {
   debug: 'text-gray-400',
@@ -14,6 +20,13 @@ const LEVEL_BG: Record<LogLevel, string> = {
   info:  'bg-blue-500/10 border-l-blue-500',
   warn:  'bg-amber-500/10 border-l-amber-500',
   error: 'bg-red-500/10 border-l-red-500',
+};
+
+const LEVEL_COUNT_STYLE: Record<LogLevel, string> = {
+  debug: 'text-gray-500',
+  info:  'text-blue-400',
+  warn:  'text-amber-400',
+  error: 'text-red-400',
 };
 
 function DataTree({ data }: { data: unknown }) {
@@ -39,11 +52,13 @@ function DataTree({ data }: { data: unknown }) {
 }
 
 export default function DebugPanel() {
-  const [open, setOpen]         = useState(false);
-  const [entries, setEntries]   = useState<LogEntry[]>(() => getLogs());
-  const [filter, setFilter]     = useState<LogLevel | 'all'>('all');
-  const [search, setSearch]     = useState('');
-  const [copied, setCopied]     = useState(false);
+  const [open, setOpen]           = useState(false);
+  const [entries, setEntries]     = useState<LogEntry[]>(() => getLogs());
+  const [filter, setFilter]       = useState<LogLevel | 'all'>('all');
+  const [catFilter, setCatFilter] = useState('');
+  const [search, setSearch]       = useState('');
+  const [copied, setCopied]       = useState(false);
+  const [persist, setPersistUI]   = useState(() => isPersistEnabled());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Toggle on Ctrl+Shift+D
@@ -60,32 +75,49 @@ export default function DebugPanel() {
 
   // Subscribe to new log entries
   useEffect(() => {
-    setLogListener((entry) => {
+    const handler = (entry: LogEntry) => {
       if (!entry) { setEntries([]); return; }   // clearLogs() sends null
       setEntries(getLogs());
-    });
-    return () => setLogListener(null);
+    };
+    setLogListener(handler);
+    return () => removeLogListener(handler);
   }, []);
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [entries, open]);
 
+  // Derive unique categories from entries
+  const categories = useMemo(() =>
+    Array.from(new Set(entries.map(e => e.category))).sort(),
+  [entries]);
+
   const visible = entries.filter(e =>
     (filter === 'all' || e.level === filter) &&
+    (!catFilter || e.category === catFilter) &&
     (!search || e.message.toLowerCase().includes(search.toLowerCase()) ||
      e.category.toLowerCase().includes(search.toLowerCase()))
   );
 
+  // Per-level counts for the stats bar
+  const counts = useMemo(() => {
+    const c = { debug: 0, info: 0, warn: 0, error: 0 };
+    entries.forEach(e => { c[e.level]++; });
+    return c;
+  }, [entries]);
+
   const copyAll = () => {
-    const text = visible.map(e =>
-      `[${e.timestamp}] [${e.level.toUpperCase()}] [${e.category}] ${e.message}` +
-      (e.data !== undefined ? '\n' + JSON.stringify(e.data, null, 2) : '')
-    ).join('\n\n');
+    const text = exportLogs('text');
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const togglePersist = () => {
+    const next = !persist;
+    setPersist(next);
+    setPersistUI(next);
   };
 
   if (!open) {
@@ -101,7 +133,7 @@ export default function DebugPanel() {
   }
 
   return (
-    <div className="fixed inset-x-2 bottom-2 top-2 z-50 md:inset-x-auto md:left-auto md:right-2 md:top-2 md:bottom-2 md:w-[560px] flex flex-col bg-gray-950 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-x-2 bottom-2 top-2 z-50 md:inset-x-auto md:left-auto md:right-2 md:top-2 md:bottom-2 md:w-[580px] flex flex-col bg-gray-950 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 shrink-0">
         <Bug className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -126,27 +158,72 @@ export default function DebugPanel() {
         </div>
 
         <div className="flex items-center gap-1 ml-auto">
+          {/* Persist toggle */}
+          <button
+            onClick={togglePersist}
+            title={persist ? 'Disable log persistence (localStorage)' : 'Enable log persistence (localStorage)'}
+            className={`p-1.5 rounded-lg transition text-xs flex items-center gap-1 ${
+              persist
+                ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+          </button>
+          {/* Download JSON */}
+          <button
+            onClick={() => downloadLogs('json')}
+            title="Download logs as JSON"
+            className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+          {/* Copy */}
           <button onClick={copyAll} title="Copy all visible logs" className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition text-xs flex items-center gap-1">
             <Copy className="w-3.5 h-3.5" />
             {copied ? 'Copied!' : 'Copy'}
           </button>
+          {/* Clear */}
           <button onClick={() => { clearLogs(); setEntries([]); }} title="Clear" className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-lg transition">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
+          {/* Close */}
           <button onClick={() => setOpen(false)} className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="px-3 py-2 border-b border-gray-800 shrink-0">
+      {/* Stats bar */}
+      <div className="flex items-center gap-3 px-4 py-1.5 border-b border-gray-800/60 shrink-0 text-[10px] font-mono">
+        {(['debug', 'info', 'warn', 'error'] as LogLevel[]).map(l => (
+          <span key={l} className={LEVEL_COUNT_STYLE[l]}>
+            {l[0].toUpperCase()}: {counts[l]}
+          </span>
+        ))}
+        {persist && <span className="text-emerald-500 ml-auto">● persisting</span>}
+      </div>
+
+      {/* Search + Category filter */}
+      <div className="flex gap-2 px-3 py-2 border-b border-gray-800 shrink-0">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Filter messages or categories…"
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
+          className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
         />
+        {categories.length > 0 && (
+          <select
+            value={catFilter}
+            onChange={e => setCatFilter(e.target.value)}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-indigo-500 transition max-w-[140px]"
+          >
+            <option value="">All categories</option>
+            {categories.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Entries */}
@@ -165,6 +242,9 @@ export default function DebugPanel() {
                 </span>
                 <span className={`uppercase font-bold shrink-0 ${LEVEL_STYLE[entry.level]}`}>{entry.level}</span>
                 <span className="text-indigo-400 shrink-0">{entry.category}</span>
+                {entry.elapsed !== undefined && (
+                  <span className="text-emerald-600 shrink-0">{entry.elapsed.toFixed(1)}ms</span>
+                )}
                 <span className="text-gray-300 break-all">{entry.message}</span>
               </div>
               {entry.data !== undefined && <DataTree data={entry.data} />}

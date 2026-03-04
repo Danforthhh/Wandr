@@ -109,7 +109,7 @@ async function callClaude(
 
 // ─── Context → Claude content blocks ─────────────────────────────────────────
 
-function buildClaudeContent(prompt: string, context?: TripContext): string | ClaudeContentBlock[] {
+export function buildClaudeContent(prompt: string, context?: TripContext): string | ClaudeContentBlock[] {
   if (!context?.text && !context?.files?.length) return prompt;
 
   const files     = context.files ?? [];
@@ -169,7 +169,7 @@ async function callGeneration(
 
 // After parsing, unwrap arrays that Perplexity sometimes wraps in an object.
 // e.g. {"itinerary":[...]} or {"days":[...]} → returns the inner array.
-function asArray<T>(parsed: unknown): T[] {
+export function asArray<T>(parsed: unknown): T[] {
   if (Array.isArray(parsed)) return parsed as T[];
   if (parsed && typeof parsed === 'object') {
     for (const val of Object.values(parsed as Record<string, unknown>)) {
@@ -181,7 +181,7 @@ function asArray<T>(parsed: unknown): T[] {
 
 // Walk a string to find the closing bracket/brace that matches the opener at `start`.
 // Respects string literals and escape sequences so citation markers like [1] are ignored.
-function extractBalanced(text: string, start: number, open: string, close: string): string | null {
+export function extractBalanced(text: string, start: number, open: string, close: string): string | null {
   let depth = 0;
   let inString = false;
   for (let i = start; i < text.length; i++) {
@@ -198,7 +198,7 @@ function extractBalanced(text: string, start: number, open: string, close: strin
   return null;
 }
 
-function parseJSON<T>(raw: string): T {
+export function parseJSON<T>(raw: string): T {
   // Strip markdown code fences that Perplexity/Claude sometimes add
   const stripped = raw
     .replace(/^```(?:json|JSON)?\s*/m, '')
