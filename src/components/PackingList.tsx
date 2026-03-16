@@ -70,7 +70,7 @@ export default function PackingList({ trip, onGenerate, onUpdate, hasAiKey, onSe
         <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
           {hasAiKey
             ? 'AI will create a smart, categorized packing list tailored to your destination, activities, and trip duration.'
-            : 'Set up your Perplexity API key to generate a smart packing list with AI.'}
+            : 'Set up your Anthropic API key to generate a smart packing list with AI.'}
         </p>
         {error && (
           <div className="mb-5 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm">

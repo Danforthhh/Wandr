@@ -196,7 +196,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
         <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
           {hasAiKey
             ? 'AI will create a personalized day-by-day schedule based on your destination, interests, and travel dates.'
-            : 'Add activities manually using the button below, or set up your Perplexity API key to generate one with AI.'}
+            : 'Add activities manually using the button below, or set up your Anthropic (Claude) API key to generate one with AI.'}
         </p>
         {error && (
           <div className="mb-5 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm">{error}</div>
@@ -296,7 +296,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
               Regen
             </button>
           ) : (
-            <button onClick={onSettingsClick} title="Set up Perplexity key to regenerate"
+            <button onClick={onSettingsClick} title="Set up Claude key to regenerate"
               className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-700 hover:text-gray-500 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
               <Lock className="w-3.5 h-3.5" />
               Regen
