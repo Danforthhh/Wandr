@@ -2,9 +2,14 @@ import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '.
 import { logActivity } from './activityLog';
 import { logger } from './logger';
 
+// ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
+// Les clés API sont stockées côté worker (secrets Cloudflare) — jamais dans le bundle.
+// TODO: Remplacer par l'URL du worker après `npx wrangler deploy` dans Spyke/worker/
+const WORKER_URL = 'https://ai-proxy.danforthhh.workers.dev';
+
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
-const PPLX_URL         = 'https://api.perplexity.ai/chat/completions';
+const PPLX_URL         = `${WORKER_URL}/perplexity/chat/completions`;
 const PPLX_MODEL        = 'sonar-pro';
 const PPLX_SEARCH_MODEL = 'sonar';
 
@@ -27,10 +32,7 @@ async function callPerplexity(
 
   const res = await fetch(PPLX_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, max_tokens: maxTokens, messages: allMessages }),
   });
 
@@ -49,7 +51,7 @@ async function callPerplexity(
 
 // ─── Claude ───────────────────────────────────────────────────────────────────
 
-const CLAUDE_URL   = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_URL   = `${WORKER_URL}/anthropic/v1/messages`;
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
 type ClaudeContentBlock =
@@ -76,12 +78,7 @@ async function callClaude(
 
   const res = await fetch(CLAUDE_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: maxTokens,
@@ -158,9 +155,6 @@ async function callGeneration(
   context?: TripContext,
   options: { maxTokens?: number } = {}
 ): Promise<string> {
-  if (!anthropicKey) {
-    throw new Error('An Anthropic (Claude) API key is required to generate content. Please add it in Settings.');
-  }
   const content = buildClaudeContent(prompt, context);
   return callClaude(content, system, anthropicKey, options);
 }
