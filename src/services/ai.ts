@@ -5,7 +5,7 @@ import { logger } from './logger';
 // ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
 // Les clés API sont stockées côté worker (secrets Cloudflare) — jamais dans le bundle.
 // TODO: Remplacer par l'URL du worker après `npx wrangler deploy` dans Spyke/worker/
-const WORKER_URL = 'https://ai-proxy.danforthhh.workers.dev';
+const WORKER_URL = 'https://wandr.vin-bories.workers.dev';
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
