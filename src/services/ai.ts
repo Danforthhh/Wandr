@@ -3,8 +3,7 @@ import { logActivity } from './activityLog';
 import { logger } from './logger';
 
 // ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
-// Les clés API sont stockées côté worker (secrets Cloudflare) — jamais dans le bundle.
-// TODO: Remplacer par l'URL du worker après `npx wrangler deploy` dans Spyke/worker/
+// API keys are stored server-side (Cloudflare secrets) — never in the bundle.
 const WORKER_URL = 'https://wandr.vin-bories.workers.dev';
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
