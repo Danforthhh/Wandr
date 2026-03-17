@@ -191,7 +191,6 @@ describe('generateTripDetails', () => {
     interests: ['temples', 'food'],
     budget: 2000,
     travelers: 2,
-    anthropicKey: 'test-key',
   };
 
   it('returns a parsed TripOverview on success', async () => {
@@ -224,11 +223,6 @@ describe('generateTripDetails', () => {
 
     await expect(generateTripDetails(BASE_PARAMS)).rejects.toThrow(/Invalid Claude API key/);
     vi.unstubAllGlobals();
-  });
-
-  it('throws when no anthropicKey provided', async () => {
-    await expect(generateTripDetails({ ...BASE_PARAMS, anthropicKey: '' }))
-      .rejects.toThrow(/Anthropic.*API key/i);
   });
 
   it('handles Claude returning JSON wrapped in markdown fences', async () => {

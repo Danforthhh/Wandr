@@ -19,7 +19,6 @@ type FullMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 async function callPerplexity(
   messages: ApiMessage[],
   system: string,
-  apiKey: string,
   options: { maxTokens?: number; model?: string } = {}
 ): Promise<string> {
   const { maxTokens = 8192, model = PPLX_MODEL } = options;
@@ -62,7 +61,6 @@ type ClaudeContentBlock =
 async function callClaude(
   userContent: string | ClaudeContentBlock[],
   system: string,
-  apiKey: string,
   options: { maxTokens?: number } = {}
 ): Promise<string> {
   const { maxTokens = 8192 } = options;
@@ -151,12 +149,11 @@ export function buildClaudeContent(prompt: string, context?: TripContext): strin
 async function callGeneration(
   prompt: string,
   system: string,
-  anthropicKey: string,
   context?: TripContext,
   options: { maxTokens?: number } = {}
 ): Promise<string> {
   const content = buildClaudeContent(prompt, context);
-  return callClaude(content, system, anthropicKey, options);
+  return callClaude(content, system, options);
 }
 
 // ─── JSON parse / shape helpers ───────────────────────────────────────────────
@@ -241,11 +238,10 @@ export async function generateTripDetails(params: {
   interests: string[];
   budget: number;
   travelers: number;
-  anthropicKey: string;
   context?: TripContext;
 }): Promise<TripOverview> {
   const { destination, startDate, endDate, interests, budget, travelers,
-          anthropicKey, context } = params;
+          context } = params;
 
   const actId = logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
@@ -264,7 +260,6 @@ Fill in this JSON exactly (no other text):
     const text = await callGeneration(
       prompt,
       'You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation. Raw JSON only.',
-      anthropicKey,
       context,
       { maxTokens: 512 }
     );
@@ -281,8 +276,7 @@ Fill in this JSON exactly (no other text):
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 
 export async function generateItinerary(
-  trip: Trip,
-  anthropicKey: string
+  trip: Trip
 ): Promise<ItineraryDay[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
@@ -312,7 +306,6 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
     const text = await callGeneration(
       prompt,
       'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
-      anthropicKey,
       undefined,
       { maxTokens: 8192 }
     );
@@ -344,8 +337,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
 // ─── Packing List ─────────────────────────────────────────────────────────────
 
 export async function generatePackingList(
-  trip: Trip,
-  anthropicKey: string
+  trip: Trip
 ): Promise<PackingItem[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
@@ -365,7 +357,6 @@ Mark passport, medications as essential:true. Others essential:false.`;
     const text = await callGeneration(
       prompt,
       'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
-      anthropicKey,
       undefined,
       { maxTokens: 3000 }
     );
@@ -385,8 +376,6 @@ export async function chatAboutTrip(
   userMessage: string,
   history: ApiMessage[],
   trip: Trip,
-  perplexityKey: string,
-  anthropicKey?: string,
   attachments?: TripContextFile[]
 ): Promise<string> {
   const actId = logActivity({ message: 'AI assistant responding…', status: 'pending' });
@@ -400,9 +389,9 @@ Be concise and specific. 2-4 sentences per answer.`;
   try {
     let result: string;
 
-    // Use Claude when attachments are present (vision support) or when no Perplexity key
-    if ((attachments?.length || !perplexityKey) && anthropicKey) {
-      const content = buildClaudeContent(userMessage, attachments?.length ? { files: attachments } : undefined);
+    // Use Claude when attachments are present (vision support), otherwise Perplexity
+    if (attachments?.length) {
+      const content = buildClaudeContent(userMessage, { files: attachments });
       // Prepend history as text context since Claude messages need alternating roles
       const historyContext = history.length
         ? `Previous conversation:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\n\n`
@@ -410,12 +399,11 @@ Be concise and specific. 2-4 sentences per answer.`;
       const withHistory: ClaudeContentBlock[] = typeof content === 'string'
         ? [{ type: 'text', text: historyContext + content }]
         : [{ type: 'text', text: historyContext }, ...content];
-      result = await callClaude(withHistory, system, anthropicKey, { maxTokens: 1024 });
+      result = await callClaude(withHistory, system, { maxTokens: 1024 });
     } else {
       result = await callPerplexity(
         [...history, { role: 'user', content: userMessage }],
         system,
-        perplexityKey,
         { maxTokens: 1024 }
       );
     }
@@ -433,8 +421,7 @@ Be concise and specific. 2-4 sentences per answer.`;
 
 export async function searchTravel(
   query: string,
-  trip: Trip,
-  perplexityKey: string
+  trip: Trip
 ): Promise<string> {
   const actId = logActivity({ message: 'Searching travel info…', status: 'pending' });
 
@@ -444,7 +431,6 @@ export async function searchTravel(
     const result = await callPerplexity(
       [{ role: 'user', content: query }],
       system,
-      perplexityKey,
       { maxTokens: 2048, model: PPLX_SEARCH_MODEL }
     );
     logActivity({ message: 'Search complete', status: 'success' }, actId);

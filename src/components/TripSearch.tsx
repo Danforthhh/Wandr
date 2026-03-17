@@ -5,7 +5,6 @@ import { searchTravel } from '../services/ai';
 
 interface Props {
   trip: Trip;
-  perplexityKey: string;
   hasSearchKey: boolean;
   onSettingsClick: () => void;
 }
@@ -19,7 +18,7 @@ const PRESETS = [
   { label: '💡 Travel Tips',  query: 'Essential travel tips, visa requirements and local customs' },
 ];
 
-export default function TripSearch({ trip, perplexityKey, hasSearchKey, onSettingsClick }: Props) {
+export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Props) {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +32,7 @@ export default function TripSearch({ trip, perplexityKey, hasSearchKey, onSettin
     setResult('');
     setActiveQuery(q);
     try {
-      const res = await searchTravel(q, trip, perplexityKey);
+      const res = await searchTravel(q, trip);
       setResult(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Search failed');

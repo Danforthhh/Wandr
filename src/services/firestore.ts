@@ -54,32 +54,6 @@ export async function saveChats(uid: string, tripId: string, messages: ChatMessa
   await setDoc(chatDoc(uid, tripId), { messages });
 }
 
-// ── API Keys ──────────────────────────────────────────────────────────────────
-
-export interface ApiKeys {
-  perplexityKey: string;
-  anthropicKey: string;
-}
-
-export async function getApiKeys(uid: string): Promise<ApiKeys> {
-  const snap = await getDoc(settingsDoc(uid));
-  if (!snap.exists()) return { perplexityKey: '', anthropicKey: '' };
-  const data = snap.data();
-  return {
-    // backward compat: old `apiKey` field maps to perplexityKey
-    perplexityKey: (data.perplexityKey ?? data.apiKey ?? '') as string,
-    anthropicKey:  (data.anthropicKey ?? '') as string,
-  };
-}
-
-export async function saveApiKeys(uid: string, keys: ApiKeys): Promise<void> {
-  await setDoc(
-    settingsDoc(uid),
-    { perplexityKey: keys.perplexityKey, anthropicKey: keys.anthropicKey },
-    { merge: true }
-  );
-}
-
 // ── Account deletion ──────────────────────────────────────────────────────────
 // Must be called BEFORE deleteUser(auth) since security rules require valid auth.
 

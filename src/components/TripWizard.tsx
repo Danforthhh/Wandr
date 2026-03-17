@@ -53,7 +53,6 @@ interface Props {
   onBack: () => void;
   onCreate: (params: CreateParams) => Promise<Trip>;
   hasAiKey: boolean;
-  hasClaudeKey: boolean;
   onSettingsClick: () => void;
 }
 
@@ -65,7 +64,7 @@ function fmtSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function TripWizard({ onBack, onCreate, hasAiKey, hasClaudeKey, onSettingsClick }: Props) {
+export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick }: Props) {
   const [step, setStep]     = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
@@ -409,12 +408,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, hasClaudeKey, o
                     {contextFiles.length}/{MAX_FILES}
                   </span>
                 </label>
-                {!hasClaudeKey && (
-                  <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                    Images &amp; PDFs need Claude key
-                  </span>
-                )}
-              </div>
+                </div>
 
               {/* Drop zone */}
               <div
@@ -499,15 +493,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, hasClaudeKey, o
               )}
 
               {/* API key note for images/PDFs */}
-              {contextFiles.some(f => f.mimeType.startsWith('image/') || f.mimeType === 'application/pdf') && !hasClaudeKey && (
-                <div className="mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
-                  <span className="text-base shrink-0">⚠️</span>
-                  <p className="text-xs text-amber-300 leading-relaxed">
-                    Images and PDFs will be ignored — add a Claude API key in Settings to enable vision analysis.
-                    Text notes and .txt/.md files still work.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         )}

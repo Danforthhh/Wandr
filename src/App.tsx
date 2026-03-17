@@ -7,7 +7,6 @@ import { useAuth } from './hooks/useAuth';
 import {
   getTrips, saveTrip, deleteTrip as firestoreDeleteTrip,
   getChats, saveChats,
-  getApiKeys, saveApiKeys, ApiKeys,
   deleteAllUserData,
 } from './services/firestore';
 import { generateTripDetails, generateItinerary, generatePackingList } from './services/ai';
@@ -30,41 +29,24 @@ export default function App() {
   const [view, setView]                 = useState<View>('dashboard');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [activeTab, setActiveTab]       = useState<DetailTab>('overview');
-  const [perplexityKey, setPerplexityKey] = useState('');
-  const [anthropicKey, setAnthropicKey]   = useState('');
   const [showKeyModal, setShowKeyModal]   = useState(false);
 
   // Load user data on auth
   useEffect(() => {
     if (!user) {
       setTrips([]);
-      setPerplexityKey('');
-      setAnthropicKey('');
       setView('dashboard');
       setSelectedTrip(null);
       return;
     }
 
     let cancelled = false;
-    Promise.all([
-      getTrips(user.uid).catch((): Trip[] => []),
-      getApiKeys(user.uid).catch(() => ({ perplexityKey: '', anthropicKey: '' })),
-    ]).then(([loadedTrips, loadedKeys]) => {
+    getTrips(user.uid).catch((): Trip[] => []).then(loadedTrips => {
       if (cancelled) return;
       setTrips(loadedTrips);
-      setPerplexityKey(loadedKeys.perplexityKey);
-      setAnthropicKey(loadedKeys.anthropicKey);
     });
     return () => { cancelled = true; };
   }, [user]);
-
-  // ── API keys ─────────────────────────────────────────────────────────────────
-
-  const handleSaveApiKeys = async (keys: ApiKeys) => {
-    setPerplexityKey(keys.perplexityKey);
-    setAnthropicKey(keys.anthropicKey);
-    if (user) await saveApiKeys(user.uid, keys);
-  };
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -91,7 +73,7 @@ export default function App() {
     context?: TripContext;
   }): Promise<Trip> => {
     const details = await generateTripDetails({
-      ...params, anthropicKey, context: params.context,
+      ...params, context: params.context,
     });
 
     const trip: Trip = {
@@ -139,14 +121,14 @@ export default function App() {
   // ── AI generation ──────────────────────────────────────────────────────────
 
   const handleGenerateItinerary = async (trip: Trip): Promise<Trip> => {
-    const itinerary = await generateItinerary(trip, anthropicKey);
+    const itinerary = await generateItinerary(trip);
     const updated = { ...trip, itinerary };
     await handleUpdateTrip(updated);
     return updated;
   };
 
   const handleGeneratePackingList = async (trip: Trip): Promise<Trip> => {
-    const packingList = await generatePackingList(trip, anthropicKey);
+    const packingList = await generatePackingList(trip);
     const updated = { ...trip, packingList };
     await handleUpdateTrip(updated);
     return updated;
@@ -172,10 +154,9 @@ export default function App() {
 
   if (!user) return <AuthPage />;
 
-  // Generation (trip details, itinerary, packing) uses Claude only
-  const hasGenerationKey = !!anthropicKey;
-  // Search and chat use Perplexity for real-time web data
-  const hasSearchKey = !!perplexityKey;
+  // Keys are stored in the Cloudflare Worker — always available
+  const hasGenerationKey = true;
+  const hasSearchKey = true;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
@@ -183,8 +164,6 @@ export default function App() {
       <DebugPanel />
       {showKeyModal && (
         <ApiKeyModal
-          onSave={handleSaveApiKeys}
-          existing={{ perplexityKey, anthropicKey }}
           onClose={() => setShowKeyModal(false)}
           onLogout={handleLogout}
           onDeleteAccount={handleDeleteAccount}
@@ -210,7 +189,6 @@ export default function App() {
           onBack={() => setView('dashboard')}
           onCreate={handleCreateTrip}
           hasAiKey={hasGenerationKey}
-          hasClaudeKey={!!anthropicKey}
           onSettingsClick={() => setShowKeyModal(true)}
         />
       )}
@@ -227,8 +205,6 @@ export default function App() {
           onUpdateTrip={handleUpdateTrip}
           getChatHistory={getChatHistory}
           saveChatHistory={saveChatHistory}
-          perplexityKey={perplexityKey}
-          anthropicKey={anthropicKey}
           hasGenerationKey={hasGenerationKey}
           hasSearchKey={hasSearchKey}
           onSettingsClick={() => setShowKeyModal(true)}

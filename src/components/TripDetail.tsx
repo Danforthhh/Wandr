@@ -27,8 +27,6 @@ interface Props {
   onUpdateTrip: (trip: Trip) => void;
   getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
   saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
-  perplexityKey: string;
-  anthropicKey: string;
   hasGenerationKey: boolean;
   hasSearchKey: boolean;
   onSettingsClick: () => void;
@@ -57,7 +55,7 @@ export default function TripDetail({
   trip, activeTab, onTabChange, onBack, onDelete,
   onGenerateItinerary, onGeneratePackingList, onUpdateTrip,
   getChatHistory, saveChatHistory,
-  perplexityKey, anthropicKey, hasGenerationKey, hasSearchKey, onSettingsClick,
+  hasGenerationKey, hasSearchKey, onSettingsClick,
 }: Props) {
   const start = new Date(trip.startDate + 'T12:00:00');
   const end   = new Date(trip.endDate   + 'T12:00:00');
@@ -289,13 +287,13 @@ export default function TripDetail({
         )}
 
         {activeTab === 'chat' && (
-          <AIChat trip={trip} perplexityKey={perplexityKey} anthropicKey={anthropicKey}
+          <AIChat trip={trip}
             hasAiKey={hasSearchKey} onSettingsClick={onSettingsClick}
             getChatHistory={getChatHistory} saveChatHistory={saveChatHistory} />
         )}
 
         {activeTab === 'search' && (
-          <TripSearch trip={trip} perplexityKey={perplexityKey} hasSearchKey={hasSearchKey} onSettingsClick={onSettingsClick} />
+          <TripSearch trip={trip} hasSearchKey={hasSearchKey} onSettingsClick={onSettingsClick} />
         )}
       </div>
 

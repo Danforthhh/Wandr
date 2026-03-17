@@ -5,8 +5,6 @@ import { chatAboutTrip } from '../services/ai';
 
 interface Props {
   trip: Trip;
-  perplexityKey: string;
-  anthropicKey: string;
   hasAiKey: boolean;
   onSettingsClick: () => void;
   getChatHistory: (tripId: string) => Promise<ChatMessage[]>;
@@ -50,7 +48,7 @@ async function fileToContextFile(file: File): Promise<TripContextFile | null> {
   });
 }
 
-export default function AIChat({ trip, perplexityKey, anthropicKey, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
+export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState('');
   const [loading, setLoading]         = useState(false);
@@ -109,8 +107,6 @@ export default function AIChat({ trip, perplexityKey, anthropicKey, hasAiKey, on
         text.trim() || '(see attached file)',
         history,
         trip,
-        perplexityKey,
-        anthropicKey,
         sentAttachments.length ? sentAttachments : undefined
       );
 
@@ -179,9 +175,7 @@ export default function AIChat({ trip, perplexityKey, anthropicKey, hasAiKey, on
           </div>
           <span className="text-sm font-medium text-gray-300">AI Travel Assistant</span>
           <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Online</span>
-          {anthropicKey && (
-            <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full">Vision</span>
-          )}
+          <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full">Vision</span>
         </div>
         {messages.length > 0 && (
           <button
@@ -203,8 +197,7 @@ export default function AIChat({ trip, perplexityKey, anthropicKey, hasAiKey, on
             </div>
             <p className="font-medium text-gray-300 mb-1">Ask me anything about {trip.destination}</p>
             <p className="text-sm text-gray-500 mb-5 max-w-sm">
-              I know your trip details, interests, and budget.
-              {anthropicKey ? ' Attach images or files for visual help.' : ' Let me help you plan the perfect experience.'}
+              I know your trip details, interests, and budget. Attach images or files for visual help.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {QUICK_PROMPTS.map(p => (
@@ -310,18 +303,16 @@ export default function AIChat({ trip, perplexityKey, anthropicKey, hasAiKey, on
           onSubmit={e => { e.preventDefault(); send(input); }}
           className="flex gap-2"
         >
-          {/* Attach button — only shown when Claude key present */}
-          {anthropicKey && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={loading || attachments.length >= 3}
-              title="Attach image or file (max 3)"
-              className="p-3 text-gray-500 hover:text-indigo-400 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl transition shrink-0"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-          )}
+          {/* Attach button */}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={loading || attachments.length >= 3}
+            title="Attach image or file (max 3)"
+            className="p-3 text-gray-500 hover:text-indigo-400 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl transition shrink-0"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
           <input
             ref={inputRef}
             value={input}
