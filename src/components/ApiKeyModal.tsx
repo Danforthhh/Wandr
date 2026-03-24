@@ -40,8 +40,8 @@ export default function ApiKeyModal({ onClose, onLogout, onDeleteAccount }: Prop
               <Settings className="w-5 h-5 text-gray-400" />
             </div>
             <div>
-              <h2 className="font-semibold text-gray-100">Settings</h2>
-              <p className="text-xs text-gray-500">Account management</p>
+              <h2 className="font-semibold text-gray-100">Account</h2>
+              <p className="text-xs text-gray-500">Sign out or delete your account</p>
             </div>
           </div>
           <button
