@@ -4,7 +4,7 @@ import { logger } from './logger';
 
 // ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
 // PROD: Cloudflare Worker (API keys stored as secrets — never in the bundle)
-// DEV:  local proxy at localhost:8788 — free Ollama + Brave Search
+// DEV:  Cloudflare Worker dev-proxy — free Groq (llama-3.3-70b) + Tavily search
 // Switch via the DEV/PROD toggle in the UI (persisted to localStorage).
 const WORKER_URL_PROD = 'https://wandr.vin-bories.workers.dev';
 const WORKER_URL_DEV  = 'https://dev-proxy.vin-bories.workers.dev';
