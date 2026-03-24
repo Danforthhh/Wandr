@@ -55,8 +55,10 @@ The pill shows live Tavily usage: `🔧 DEV · 42/1000 🔍 · resets Apr 1`
 ## Deploy
 
 ```bash
-npm run deploy   # builds + publishes to GitHub Pages via gh-pages
+npm run deploy   # triggers code review → builds → publishes to GitHub Pages
 ```
+
+Before building, an isolated code-reviewer agent (`.claude/agents/code-reviewer.md`) scans recently changed files for critical bugs and security issues. It blocks the deploy if anything critical is found. To update what gets reviewed, edit `.claude/agents/code-reviewer.md`.
 
 ---
 

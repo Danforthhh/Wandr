@@ -40,6 +40,8 @@ Browser (React)
 | `src/components/DevModeToggle.tsx` | DEV/PROD toggle pill — polls `/stats` every 5s in DEV mode |
 | `src/components/TripWizard.tsx` | Trip creation flow with context upload |
 | `src/components/AIChat.tsx` | Chat interface with file attachments |
+| `.claude/agents/code-reviewer.md` | Read-only pre-deploy code reviewer — edit to change what gets flagged |
+| `.claude/settings.json` | Two PreToolUse hooks: TS check on push, code review on deploy |
 
 ## AI call patterns
 - **Claude** (`/anthropic/v1/messages`): structured JSON generation — trip details, itinerary, packing list; also vision when attachments present
@@ -56,9 +58,18 @@ Browser (React)
 Firebase Firestore is still used in DEV mode (trip persistence). Firestore free tier: 50k reads + 20k writes/day — more than enough for iteration. Only AI calls are routed through the free dev proxy.
 
 ## Pre-push checklist
-1. `npx tsc --noEmit` (automated via `.claude/settings.json` hook — blocks push on failure)
+1. `npx tsc --noEmit` — automated via `.claude/settings.json` hook; blocks push on TypeScript errors
 2. Update this CLAUDE.md if architecture changed
-3. `npm run deploy` to publish to GitHub Pages
+3. `npm run deploy` — triggers isolated code-reviewer agent (`.claude/agents/code-reviewer.md`) before building; blocks on CRITICAL findings, then publishes to GitHub Pages
+4. `git push`
+
+## Automated quality gates
+| Trigger | Hook type | Effect |
+|---------|-----------|--------|
+| `git push` | `command` PreToolUse | Runs `npx tsc --noEmit`, blocks on error |
+| `npm run deploy` | `agent` PreToolUse | Runs code reviewer, blocks on CRITICAL issues |
+
+To update review criteria: edit `.claude/agents/code-reviewer.md` — no `settings.json` change needed.
 
 ---
 
