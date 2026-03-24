@@ -1,5 +1,23 @@
 # Wandr — Claude Code context
 
+## Working style
+
+**Always challenge requests** — before implementing, present 2–3 options with different trade-offs (cost, complexity, reversibility, maintenance) and highlight scenarios the user may not have considered. Let the user choose, then implement.
+
+**Decision log discipline** — whenever a significant architectural decision is made collaboratively, record it below using this format:
+```
+## [Feature] — [date]
+**Context:** why this came up
+**Options considered:**
+- Option A: ... (trade-off)
+- Option B: ... (trade-off)
+**Chosen:** Option X — because ...
+```
+
+**Keep docs alive** — update this CLAUDE.md as decisions are made. It is a living document, not a one-time write-up.
+
+---
+
 ## Project overview
 AI-powered trip planning app. React 18 + TypeScript + Vite + Tailwind. Firebase Auth + Firestore for persistence.
 

@@ -14,7 +14,13 @@
       "Bash(npx firebase-tools:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run deploy:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx gh-pages:*)",
+      "Bash(find /c/Code/Spyke -name README* -o -name CLAUDE.md)",
+      "Bash(find /c/Code/Product -name README*)",
+      "Bash(ls /c/Code/Spyke/*.md /c/Code/Product/*.md)",
+      "Bash(printf '# Cloudflare Worker URL that proxies Anthropic API calls\\\\n# Deploy the worker: cd worker/ && npx wrangler deploy\\\\n# Then copy the displayed URL here\\\\nVITE_WORKER_URL=https://spyke.YOUR_SUBDOMAIN.workers.dev\\\\n')",
+      "Bash(ls /c/Code/Spyke/*.json /c/Code/Spyke/*.txt /c/Code/Spyke/*.toml)"
     ]
   }
 }

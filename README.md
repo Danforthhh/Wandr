@@ -1,6 +1,10 @@
 # Wandr — AI Trip Planner
 
-An AI-native trip planning app powered by Claude. Plan itineraries, generate packing lists, and chat with an AI assistant — all tailored to your destination and interests.
+An AI-native trip planning app. Plan itineraries, generate packing lists, and chat with an AI travel assistant — all tailored to your destination and interests.
+
+**Live:** [danforthhh.github.io/Wandr](https://danforthhh.github.io/Wandr/)
+
+---
 
 ## Features
 
@@ -8,53 +12,61 @@ An AI-native trip planning app powered by Claude. Plan itineraries, generate pac
 - **AI Itinerary** — Day-by-day schedule with activities, timings, and cost estimates
 - **AI Packing List** — Smart, categorized checklist tailored to your destination and activities
 - **AI Chat Assistant** — Ask anything about your trip: local tips, customs, hidden gems, logistics
-- **Local storage** — All trips saved in your browser, no account needed
+- **Context upload** — Attach PDFs or images (hotel bookings, maps) to enrich AI responses
 
-## Setup
+---
 
-### 1. Install Node.js
-Download from [nodejs.org](https://nodejs.org) (LTS version recommended).
+## Tech stack
 
-### 2. Install dependencies
+- React 18 + TypeScript + Vite + Tailwind CSS
+- Firebase Auth + Firestore (persistence)
+- Anthropic Claude (itinerary, packing list, vision)
+- Perplexity (conversational chat + real-time travel search)
+- Cloudflare Worker as API gateway (keys stored as secrets — never in the bundle)
+
+---
+
+## Local development
+
 ```bash
 npm install
+npm run dev   # http://localhost:5173
 ```
 
-### 3. Get an Anthropic API key
-Sign up at [console.anthropic.com](https://console.anthropic.com) and create an API key.
+No API keys needed locally — the app routes through a Cloudflare Worker.
 
-### 4. Run the app
-```bash
-npm run dev
-```
+---
 
-Open [http://localhost:5173](http://localhost:5173) in your browser. Enter your Anthropic API key when prompted — it's stored locally in your browser only.
+## DEV / PROD toggle
 
-## Build for production
-```bash
-npm run build
-npm run preview
-```
-
-## Development mode (free)
-
-A **DEV/PROD toggle** pill lives in the top-right corner of the app. Click it to switch between:
+A **DEV · PROD pill** lives in the top-right corner. Click it to switch AI backends at runtime — no restart needed.
 
 | Mode | AI backend | Cost |
 |------|-----------|------|
-| **☁ PROD** | Cloudflare Worker → Claude + Perplexity | Paid per token |
-| **🔧 DEV** | Local proxy → Ollama `qwen2.5:7b` + Brave Search | Free |
+| **☁ PROD** | `wandr.vin-bories.workers.dev` → Claude + Perplexity | Paid per token |
+| **🔧 DEV** | `dev-proxy.vin-bories.workers.dev` → Groq Llama 3.3 70B + Tavily | Free |
 
-The pill shows live search usage: `🔧 DEV · 42/2000 🔍 · resets Apr 1`
+The pill shows live Tavily usage: `🔧 DEV · 42/1000 🔍 · resets Apr 1`
 
-**Setup** — see [`../dev-proxy/README.md`](../dev-proxy/README.md) for one-time Ollama installation and proxy startup instructions.
+> DEV mode uses Groq for free iteration — good for testing the pipeline. Switch to PROD to validate final quality.
 
-> DEV mode uses `qwen2.5:7b` locally — good for iteration, not production-quality. Switch to PROD to validate final results.
+---
 
-## Tech stack
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- Anthropic Claude API (`claude-haiku-4-5-20251001`) + Perplexity (sonar-pro / sonar)
-- Firebase Auth + Firestore
-- lucide-react icons
+## Deploy
+
+```bash
+npm run deploy   # builds + publishes to GitHub Pages via gh-pages
+```
+
+---
+
+## Cloudflare Worker (PROD API gateway)
+
+Stores API keys server-side — never in the JS bundle.
+
+```bash
+cd worker/
+npx wrangler deploy
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put PERPLEXITY_API_KEY
+```
