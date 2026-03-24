@@ -3,12 +3,17 @@ import { logActivity } from './activityLog';
 import { logger } from './logger';
 
 // ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
-// API keys are stored server-side (Cloudflare secrets) — never in the bundle.
-const WORKER_URL = 'https://wandr.vin-bories.workers.dev';
+// PROD: Cloudflare Worker (API keys stored as secrets — never in the bundle)
+// DEV:  local proxy at localhost:8788 — free Ollama + Brave Search
+// Switch via the DEV/PROD toggle in the UI (persisted to localStorage).
+const WORKER_URL_PROD = 'https://wandr.vin-bories.workers.dev';
+const WORKER_URL_DEV  = 'http://localhost:8788';
+const getWorkerUrl = () =>
+  localStorage.getItem('devMode') === 'true' ? WORKER_URL_DEV : WORKER_URL_PROD;
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
-const PPLX_URL         = `${WORKER_URL}/perplexity/chat/completions`;
+const PPLX_URL         = () => `${getWorkerUrl()}/perplexity/chat/completions`;
 const PPLX_MODEL        = 'sonar-pro';
 const PPLX_SEARCH_MODEL = 'sonar';
 
@@ -28,7 +33,7 @@ async function callPerplexity(
     lastUserMessage: messages[messages.length - 1]?.content?.slice(0, 200),
   });
 
-  const res = await fetch(PPLX_URL, {
+  const res = await fetch(PPLX_URL(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, max_tokens: maxTokens, messages: allMessages }),
@@ -49,7 +54,7 @@ async function callPerplexity(
 
 // ─── Claude ───────────────────────────────────────────────────────────────────
 
-const CLAUDE_URL   = `${WORKER_URL}/anthropic/v1/messages`;
+const CLAUDE_URL   = () => `${getWorkerUrl()}/anthropic/v1/messages`;
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
 type ClaudeContentBlock =
@@ -73,7 +78,7 @@ async function callClaude(
     preview,
   });
 
-  const res = await fetch(CLAUDE_URL, {
+  const res = await fetch(CLAUDE_URL(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

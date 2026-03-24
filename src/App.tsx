@@ -17,6 +17,7 @@ import TripWizard from './components/TripWizard';
 import TripDetail from './components/TripDetail';
 import ActivityLog from './components/ActivityLog';
 import DebugPanel from './components/DebugPanel';
+import DevModeToggle from './components/DevModeToggle';
 
 function nanoid(): string {
   return Math.random().toString(36).slice(2, 11);
@@ -160,6 +161,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
+      <DevModeToggle />
       <ActivityLog />
       <DebugPanel />
       {showKeyModal && (

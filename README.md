@@ -36,9 +36,25 @@ npm run build
 npm run preview
 ```
 
+## Development mode (free)
+
+A **DEV/PROD toggle** pill lives in the top-right corner of the app. Click it to switch between:
+
+| Mode | AI backend | Cost |
+|------|-----------|------|
+| **☁ PROD** | Cloudflare Worker → Claude + Perplexity | Paid per token |
+| **🔧 DEV** | Local proxy → Ollama `qwen2.5:7b` + Brave Search | Free |
+
+The pill shows live search usage: `🔧 DEV · 42/2000 🔍 · resets Apr 1`
+
+**Setup** — see [`../dev-proxy/README.md`](../dev-proxy/README.md) for one-time Ollama installation and proxy startup instructions.
+
+> DEV mode uses `qwen2.5:7b` locally — good for iteration, not production-quality. Switch to PROD to validate final results.
+
 ## Tech stack
 - React 18 + TypeScript
 - Vite
 - Tailwind CSS
-- Anthropic Claude API (`claude-opus-4-6`)
+- Anthropic Claude API (`claude-haiku-4-5-20251001`) + Perplexity (sonar-pro / sonar)
+- Firebase Auth + Firestore
 - lucide-react icons
