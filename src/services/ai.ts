@@ -7,7 +7,7 @@ import { logger } from './logger';
 // DEV:  local proxy at localhost:8788 — free Ollama + Brave Search
 // Switch via the DEV/PROD toggle in the UI (persisted to localStorage).
 const WORKER_URL_PROD = 'https://wandr.vin-bories.workers.dev';
-const WORKER_URL_DEV  = 'http://localhost:8788';
+const WORKER_URL_DEV  = 'https://dev-proxy.vin-bories.workers.dev';
 const getWorkerUrl = () =>
   localStorage.getItem('devMode') === 'true' ? WORKER_URL_DEV : WORKER_URL_PROD;
 

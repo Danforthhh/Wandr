@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const PROXY_URL   = 'http://localhost:8788';
+const PROXY_URL   = 'https://dev-proxy.vin-bories.workers.dev';
 const POLL_MS     = 5000; // re-check proxy stats every 5 seconds in DEV mode
 
 interface ProxyStats {
