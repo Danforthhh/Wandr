@@ -6,10 +6,10 @@ AI-powered trip planning app. React 18 + TypeScript + Vite + Tailwind. Firebase 
 ## Architecture
 ```
 Browser (React)
-  └─ src/services/ai.ts  →  getWorkerUrl()  →  Cloudflare Worker (PROD)
-                                             →  localhost:8788    (DEV)
-                                                  └─ Ollama qwen2.5:7b
-                                                  └─ Brave / DuckDuckGo search
+  └─ src/services/ai.ts  →  getWorkerUrl()  →  Cloudflare Worker PROD (wandr.vin-bories.workers.dev)
+                                             →  Cloudflare Worker DEV  (dev-proxy.vin-bories.workers.dev)
+                                                  └─ Groq llama-3.3-70b-versatile (free)
+                                                  └─ Tavily search (1000/month free) + DuckDuckGo fallback
 ```
 
 ## Key files
@@ -19,7 +19,7 @@ Browser (React)
 | `src/services/firebase.ts` | Firebase init |
 | `src/services/firestore.ts` | Trip CRUD, chat persistence |
 | `src/App.tsx` | Root state — trips, view, auth, AI orchestration |
-| `src/components/DevModeToggle.tsx` | DEV/PROD toggle pill |
+| `src/components/DevModeToggle.tsx` | DEV/PROD toggle pill — polls `/stats` every 5s in DEV mode |
 | `src/components/TripWizard.tsx` | Trip creation flow with context upload |
 | `src/components/AIChat.tsx` | Chat interface with file attachments |
 
@@ -28,13 +28,19 @@ Browser (React)
 - **Perplexity** (`/perplexity/chat/completions`): conversational chat (no attachments) + real-time travel search
 
 ## DEV/PROD toggle
-- `localStorage.devMode === 'true'` → DEV (free, local proxy)
+- `localStorage.devMode === 'true'` → DEV (free, online via Cloudflare Worker dev-proxy)
 - `getWorkerUrl()` in `ai.ts` — called per request (reads localStorage each time)
 - `CLAUDE_URL()` and `PPLX_URL()` are functions (not constants) so the URL is fresh on every call
-- Toggle component: `src/components/DevModeToggle.tsx` — polls `GET http://localhost:8788/stats` every 5s in DEV mode; shows `🔧 DEV · N/2000 🔍 · resets Apr 1` or `⚠ Proxy offline`
+- Toggle component: `src/components/DevModeToggle.tsx` — polls `GET https://dev-proxy.vin-bories.workers.dev/stats` every 5s in DEV mode; shows `🔧 DEV · N/1000 🔍 · resets Apr 1`
+- **DEV mode quality**: Groq (Llama 3.3 70B) is lower quality than Claude. Use DEV to verify the pipeline works, PROD for real quality checks.
 
 ## Firebase in DEV mode
-Firebase Firestore is still used in DEV mode (trip persistence). Firestore free tier: 50k reads + 20k writes/day — more than enough for iteration. Only AI calls are free via the local proxy.
+Firebase Firestore is still used in DEV mode (trip persistence). Firestore free tier: 50k reads + 20k writes/day — more than enough for iteration. Only AI calls are routed through the free dev proxy.
+
+## Pre-push checklist
+1. `npx tsc --noEmit` (automated via `.claude/settings.json` hook — blocks push on failure)
+2. Update this CLAUDE.md if architecture changed
+3. `npm run deploy` to publish to GitHub Pages
 
 ---
 
@@ -44,12 +50,12 @@ Firebase Firestore is still used in DEV mode (trip persistence). Firestore free 
 **Context:** Iterating on the product was burning Claude + Perplexity API credits. Needed a way to develop for free without losing the ability to quickly test in production.
 
 **Options considered:**
-- **`.env.development.local` file switching** — Vite picks up a different `VITE_WORKER_URL` in dev mode, no code changes. Problem: requires restarting the dev server to switch, no visibility into which mode is active.
-- **OpenRouter / Groq free cloud tiers** — no local setup, but rate-limited (could be hit during heavy iteration) and still requires API keys.
-- **Ollama local LLM + UI toggle** — truly free forever, works offline, no rate limits. Toggle in the UI switches between local proxy and Cloudflare Worker at runtime (no restart). Chosen for its simplicity and zero ongoing cost.
+- **`.env.development.local` file switching** — requires restarting the dev server to switch; no visibility into which mode is active.
+- **Ollama local LLM + UI toggle** — free, works offline, no rate limits. But only works on the developer's machine.
+- **Cloudflare Worker + Groq + Tavily** — free, always online, works from any device. Rate-limited but sufficient for iteration.
 
-**Chosen:** Ollama (`qwen2.5:7b`) via local proxy + runtime UI toggle
-- Port 8788 chosen (not 8787) to avoid conflict with Wrangler dev server
-- Firebase kept as-is in DEV mode (free tier is sufficient)
-- Brave Search API (2000/month free) for web search; DuckDuckGo HTML scraping as fallback
-- Search count + monthly limit displayed in the toggle pill (`🔧 DEV · 42/2000 🔍 · resets Apr 1`)
+**Chosen:** Cloudflare Worker dev-proxy (`dev-proxy.vin-bories.workers.dev`) + runtime UI toggle
+- Groq `llama-3.3-70b-versatile` replaces Claude (free, 12k TPM limit)
+- Tavily (1000/month free) replaces Perplexity for web search; DuckDuckGo HTML scraping as fallback
+- Search count tracked via Cloudflare KV, displayed in the toggle pill
+- PROD mode unchanged — still uses real Claude + Perplexity via `wandr.vin-bories.workers.dev`
