@@ -46,8 +46,9 @@ async function callPerplexity(
     throw new Error(msg);
   }
 
-  const data = await res.json() as { choices: { message: { content: string } }[] };
-  const text = data.choices[0].message.content;
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Empty or unexpected response from Perplexity');
   logger.debug('ai.perplexity', `Response (${text.length} chars)`, { preview: text.slice(0, 300) });
   return text;
 }

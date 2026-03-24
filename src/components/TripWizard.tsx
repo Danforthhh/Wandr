@@ -35,8 +35,9 @@ const INTERESTS = [
 
 const BUDGET_PRESETS = [500, 1500, 3000, 5000, 10000];
 
-const MAX_FILES      = 5;
-const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB
+const MAX_FILES       = 5;
+const MAX_FILE_BYTES  = 4 * 1024 * 1024;  // 4 MB per file
+const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB total — base64 expands ~33%, keeps memory reasonable
 
 interface CreateParams {
   destination: string;
@@ -118,6 +119,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     const remaining = MAX_FILES - contextFiles.length;
     if (remaining <= 0) { setFileError(`Maximum ${MAX_FILES} files.`); return; }
 
+    const currentTotal = contextFiles.reduce((sum, f) => sum + f.size, 0);
     let added = 0;
     arr.slice(0, remaining).forEach(file => {
       if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -126,6 +128,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       }
       if (file.size > MAX_FILE_BYTES) {
         setFileError(`"${file.name}" exceeds the 4 MB limit.`);
+        return;
+      }
+      if (currentTotal + file.size > MAX_TOTAL_BYTES) {
+        setFileError(`Total upload size exceeds 10 MB. Remove a file before adding more.`);
         return;
       }
       const reader = new FileReader();

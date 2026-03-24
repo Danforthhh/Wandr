@@ -57,8 +57,10 @@ export default function App() {
     if (!user?.email) return;
     const credential = EmailAuthProvider.credential(user.email, password);
     await reauthenticateWithCredential(user, credential);
-    await deleteAllUserData(user.uid);
+    // Delete auth first — prevents the user from logging back in while cleanup runs.
+    // Firestore cleanup is best-effort: if it fails, data is orphaned but inaccessible.
     await deleteUser(user);
+    await deleteAllUserData(user.uid);
   };
 
   // ── Trip CRUD ──────────────────────────────────────────────────────────────
