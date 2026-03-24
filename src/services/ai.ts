@@ -100,8 +100,8 @@ async function callClaude(
     throw new Error(raw);
   }
 
-  const data = await res.json() as { content: { type: string; text: string }[] };
-  const block = data.content.find(b => b.type === 'text');
+  const data = await res.json() as { content?: { type: string; text: string }[] };
+  const block = data.content?.find(b => b.type === 'text');
   if (!block) throw new Error('No text content in Claude response');
   logger.debug('ai.claude', `Response (${block.text.length} chars)`, { preview: block.text.slice(0, 300) });
   return block.text;

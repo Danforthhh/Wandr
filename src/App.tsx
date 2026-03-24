@@ -51,7 +51,7 @@ export default function App() {
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => signOut(auth).catch(e => console.error('Sign-out failed:', e));
 
   const handleDeleteAccount = async (password: string) => {
     if (!user?.email) return;

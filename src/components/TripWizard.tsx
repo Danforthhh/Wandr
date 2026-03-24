@@ -119,7 +119,9 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     const remaining = MAX_FILES - contextFiles.length;
     if (remaining <= 0) { setFileError(`Maximum ${MAX_FILES} files.`); return; }
 
-    const currentTotal = contextFiles.reduce((sum, f) => sum + f.size, 0);
+    // runningTotal accumulates within the batch so multiple large files in one
+    // drop can't each individually pass the 10 MB check against the same baseline
+    let runningTotal = contextFiles.reduce((sum, f) => sum + f.size, 0);
     let added = 0;
     arr.slice(0, remaining).forEach(file => {
       if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -130,10 +132,11 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         setFileError(`"${file.name}" exceeds the 4 MB limit.`);
         return;
       }
-      if (currentTotal + file.size > MAX_TOTAL_BYTES) {
+      if (runningTotal + file.size > MAX_TOTAL_BYTES) {
         setFileError(`Total upload size exceeds 10 MB. Remove a file before adding more.`);
         return;
       }
+      runningTotal += file.size;
       const reader = new FileReader();
       reader.onload = e => {
         const dataUrl = e.target?.result as string;
