@@ -1,10 +1,11 @@
 import {
   doc, collection,
   getDoc, getDocs, setDoc, deleteDoc, writeBatch,
+  updateDoc, deleteField,
   query, orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Trip, ChatMessage } from '../types';
+import { Trip, ChatMessage, EncryptedKeyBundle } from '../types';
 
 // ── Path helpers ──────────────────────────────────────────────────────────────
 
@@ -70,4 +71,34 @@ export async function deleteAllUserData(uid: string): Promise<void> {
   batch.delete(settingsDoc(uid));
 
   await batch.commit();
+}
+
+// ── Encrypted key bundle ──────────────────────────────────────────────────────
+// Infrastructure for future client-side key storage.
+// Path: users/{uid}/settings/main (shared with existing settings doc, merge: true)
+
+export type { EncryptedKeyBundle };
+
+export async function getEncryptedKey(uid: string): Promise<EncryptedKeyBundle | null> {
+  const snap = await getDoc(settingsDoc(uid));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  if (typeof data.encryptedKey !== 'string' || !data.encryptedKey) return null;
+  return { encryptedKey: data.encryptedKey, keySalt: data.keySalt, keyIv: data.keyIv };
+}
+
+export async function saveEncryptedKey(uid: string, bundle: EncryptedKeyBundle): Promise<void> {
+  await setDoc(settingsDoc(uid), {
+    encryptedKey: bundle.encryptedKey,
+    keySalt:      bundle.keySalt,
+    keyIv:        bundle.keyIv,
+  }, { merge: true });
+}
+
+export async function removeEncryptedKey(uid: string): Promise<void> {
+  await updateDoc(settingsDoc(uid), {
+    encryptedKey: deleteField(),
+    keySalt:      deleteField(),
+    keyIv:        deleteField(),
+  });
 }

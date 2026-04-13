@@ -1,97 +1,94 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
 
-const PROXY_URL   = 'https://dev-proxy.vin-bories.workers.dev';
-const POLL_MS     = 5000; // re-check proxy stats every 5 seconds in DEV mode
+const PROXY_URL = 'https://dev-proxy.vin-bories.workers.dev'
+const POLL_MS   = 5000
 
 interface ProxyStats {
-  tavilySearches: number;
-  ddgSearches:   number;
-  limit:         number;
-  remaining:     number;
-  resetDate:     string;
+  tavilySearches: number
+  ddgSearches:    number
+  limit:          number
+  remaining:      number
+  resetDate:      string
+}
+
+interface Props {
+  devMode:  boolean
+  onToggle: (next: boolean) => void
 }
 
 async function fetchStats(): Promise<ProxyStats | null> {
   try {
-    const res = await fetch(`${PROXY_URL}/stats`, { signal: AbortSignal.timeout(2000) });
-    if (!res.ok) return null;
-    return await res.json() as ProxyStats;
+    const res = await fetch(`${PROXY_URL}/stats`, { signal: AbortSignal.timeout(2000) })
+    if (!res.ok) return null
+    return await res.json() as ProxyStats
   } catch {
-    return null;
+    return null
   }
 }
 
 function formatResetDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function DevModeToggle() {
-  const [devMode,  setDevMode]  = useState(() => localStorage.getItem('devMode') === 'true');
-  const [stats,    setStats]    = useState<ProxyStats | null>(null);
-  const [offline,  setOffline]  = useState(false);
+export default function DevModeToggle({ devMode, onToggle }: Props) {
+  const [stats,   setStats]   = useState<ProxyStats | null>(null)
+  const [offline, setOffline] = useState(false)
 
   const refreshStats = useCallback(async () => {
-    if (!devMode) return;
-    const data = await fetchStats();
-    if (data) { setStats(data); setOffline(false); }
-    else       { setStats(null); setOffline(true); }
-  }, [devMode]);
+    if (!devMode) return
+    const data = await fetchStats()
+    if (data) { setStats(data); setOffline(false) }
+    else       { setStats(null); setOffline(true) }
+  }, [devMode])
 
-  // Poll stats while in DEV mode
   useEffect(() => {
-    if (!devMode) { setStats(null); setOffline(false); return; }
-    refreshStats();
-    const id = setInterval(refreshStats, POLL_MS);
-    return () => clearInterval(id);
-  }, [devMode, refreshStats]);
+    if (!devMode) { setStats(null); setOffline(false); return }
+    refreshStats()
+    const id = setInterval(refreshStats, POLL_MS)
+    return () => clearInterval(id)
+  }, [devMode, refreshStats])
 
-  const toggle = async () => {
-    const next = !devMode;
-    localStorage.setItem('devMode', String(next));
-    setDevMode(next);
-    if (next) {
-      const data = await fetchStats();
-      if (data) { setStats(data); setOffline(false); }
-      else       { setStats(null); setOffline(true); }
-    } else {
-      setStats(null);
-      setOffline(false);
-    }
-  };
+  // ── Pill appearance ────────────────────────────────────────────────────────
+  const searches = stats ? stats.tavilySearches + stats.ddgSearches : 0
 
-  const searches = stats ? stats.tavilySearches + stats.ddgSearches : 0;
-
-  let label: string;
-  let title: string;
-  let pillClass: string;
+  let pillBg:    string
+  let pillLabel: string
+  let tooltip:   string
 
   if (!devMode) {
-    label     = '☁ PROD';
-    title     = 'Production mode — paid Cloudflare Worker (Claude + Perplexity)\nClick to switch to free local DEV mode';
-    pillClass = 'bg-blue-600 hover:bg-blue-700';
+    pillBg    = '#2563eb'
+    pillLabel = 'PROD'
+    tooltip   = 'Production — Cloudflare Worker (Claude + Perplexity)\nClick to switch to free DEV mode'
   } else if (offline) {
-    label     = '⚠ Proxy offline';
-    title     = `DEV mode active but Cloudflare Worker is unreachable.\nCheck: https://dev-proxy.vin-bories.workers.dev/stats`;
-    pillClass = 'bg-red-600 hover:bg-red-700';
+    pillBg    = '#dc2626'
+    pillLabel = '⚠ DEV'
+    tooltip   = 'DEV mode — Cloudflare Worker unreachable\nCheck: dev-proxy.vin-bories.workers.dev/stats\nClick to switch to PROD'
   } else if (stats) {
-    const reset = formatResetDate(stats.resetDate);
-    label     = `🔧 DEV · ${searches}/${stats.limit} 🔍 · resets ${reset}`;
-    title     = `DEV mode — free Groq + Tavily (Cloudflare Worker)\n${stats.tavilySearches} Tavily / ${stats.ddgSearches} DDG searches this month\n${stats.remaining} Tavily searches remaining · resets ${reset}\nClick to switch to PROD`;
-    pillClass = 'bg-green-700 hover:bg-green-800';
+    const reset = formatResetDate(stats.resetDate)
+    pillBg    = '#15803d'
+    pillLabel = 'DEV'
+    tooltip   = `DEV mode — Groq + Tavily (free)\n${searches}/${stats.limit} searches used · resets ${reset}\n${stats.remaining} Tavily remaining\nClick to switch to PROD`
   } else {
-    label     = '🔧 DEV';
-    title     = 'DEV mode — free Groq + Tavily (Cloudflare Worker)\nClick to switch to PROD';
-    pillClass = 'bg-green-700 hover:bg-green-800';
+    pillBg    = '#15803d'
+    pillLabel = 'DEV'
+    tooltip   = 'DEV mode — Groq + Tavily (free)\nClick to switch to PROD'
   }
 
   return (
     <button
-      onClick={toggle}
-      title={title}
-      className={`fixed top-3 right-3 z-50 px-3 py-1 rounded-full text-white text-xs font-mono font-semibold shadow-lg transition-colors ${pillClass}`}
+      onClick={() => onToggle(!devMode)}
+      title={tooltip}
+      style={{
+        padding: '5px 14px', background: pillBg, border: 'none',
+        borderRadius: 20, color: '#fff', fontSize: 12,
+        fontFamily: 'monospace', fontWeight: 600, letterSpacing: 0.5,
+        cursor: 'pointer', transition: 'filter 0.15s',
+        lineHeight: 1.4,
+      }}
+      onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.2)')}
+      onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
     >
-      {label}
+      {pillLabel}
     </button>
-  );
+  )
 }

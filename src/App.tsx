@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
-import { Trip, View, DetailTab, ChatMessage, TripContext } from './types';
+import { Trip, View, DetailTab, ChatMessage, TripContext, Session } from './types';
 import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
 import {
   getTrips, saveTrip, deleteTrip as firestoreDeleteTrip,
   getChats, saveChats,
-  deleteAllUserData,
 } from './services/firestore';
 import { generateTripDetails, generateItinerary, generatePackingList } from './services/ai';
 import AuthPage from './components/AuthPage';
-import ApiKeyModal from './components/ApiKeyModal';
+import LandingPage from './components/LandingPage';
+import AccountModal from './components/AccountModal';
 import Dashboard from './components/Dashboard';
 import TripWizard from './components/TripWizard';
 import TripDetail from './components/TripDetail';
@@ -30,16 +30,23 @@ export default function App() {
   const [view, setView]                 = useState<View>('dashboard');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [activeTab, setActiveTab]       = useState<DetailTab>('overview');
-  const [showKeyModal, setShowKeyModal]   = useState(false);
+  const [showLanding, setShowLanding]   = useState(true);
+  const [showAccount, setShowAccount]   = useState(false);
+  const [session, setSession]           = useState<Session | null>(null);
+  const [devMode, setDevMode]           = useState(() => localStorage.getItem('devMode') === 'true');
 
-  // Load user data on auth
+  // Load user data on auth change
   useEffect(() => {
     if (!user) {
       setTrips([]);
       setView('dashboard');
       setSelectedTrip(null);
+      setSession(null);
+      setShowLanding(true);
       return;
     }
+
+    setSession({ uid: user.uid, email: user.email ?? '' });
 
     let cancelled = false;
     getTrips(user.uid).catch((): Trip[] => []).then(loadedTrips => {
@@ -51,16 +58,14 @@ export default function App() {
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
-  const handleLogout = () => signOut(auth).catch(e => console.error('Sign-out failed:', e));
+  const handleLogout = () => {
+    setShowLanding(true);
+    signOut(auth).catch(e => console.error('Sign-out failed:', e));
+  };
 
-  const handleDeleteAccount = async (password: string) => {
-    if (!user?.email) return;
-    const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-    // Delete auth first — prevents the user from logging back in while cleanup runs.
-    // Firestore cleanup is best-effort: if it fails, data is orphaned but inaccessible.
-    await deleteUser(user);
-    await deleteAllUserData(user.uid);
+  const handleToggleMode = (next: boolean) => {
+    localStorage.setItem('devMode', String(next));
+    setDevMode(next);
   };
 
   // ── Trip CRUD ──────────────────────────────────────────────────────────────
@@ -155,7 +160,10 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthPage />;
+  if (!user) {
+    if (showLanding) return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+    return <AuthPage />;
+  }
 
   // Keys are stored in the Cloudflare Worker — always available
   const hasGenerationKey = true;
@@ -163,14 +171,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
-      <DevModeToggle />
+      <div className="fixed top-3 right-3 z-50">
+        <DevModeToggle devMode={devMode} onToggle={handleToggleMode} />
+      </div>
       <ActivityLog />
       <DebugPanel />
-      {showKeyModal && (
-        <ApiKeyModal
-          onClose={() => setShowKeyModal(false)}
+      {showAccount && session && (
+        <AccountModal
+          session={session}
           onLogout={handleLogout}
-          onDeleteAccount={handleDeleteAccount}
+          onClose={() => setShowAccount(false)}
         />
       )}
 
@@ -183,7 +193,7 @@ export default function App() {
             setActiveTab('overview');
             setView('detail');
           }}
-          onSettingsClick={() => setShowKeyModal(true)}
+          onSettingsClick={() => setShowAccount(true)}
           hasAiKey={hasGenerationKey}
         />
       )}
@@ -193,7 +203,7 @@ export default function App() {
           onBack={() => setView('dashboard')}
           onCreate={handleCreateTrip}
           hasAiKey={hasGenerationKey}
-          onSettingsClick={() => setShowKeyModal(true)}
+          onSettingsClick={() => setShowAccount(true)}
         />
       )}
 
@@ -211,7 +221,7 @@ export default function App() {
           saveChatHistory={saveChatHistory}
           hasGenerationKey={hasGenerationKey}
           hasSearchKey={hasSearchKey}
-          onSettingsClick={() => setShowKeyModal(true)}
+          onSettingsClick={() => setShowAccount(true)}
         />
       )}
     </div>

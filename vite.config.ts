@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   base: command === 'build' ? '/Wandr/' : '/',
   test: {
     globals: true,

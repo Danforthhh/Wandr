@@ -71,3 +71,14 @@ export interface ChatMessage {
 
 export type View = 'dashboard' | 'wizard' | 'detail';
 export type DetailTab = 'overview' | 'itinerary' | 'packing' | 'chat' | 'map' | 'search';
+
+export interface Session {
+  uid: string;
+  email: string;
+}
+
+export interface EncryptedKeyBundle {
+  encryptedKey: string;
+  keySalt: string;
+  keyIv: string;
+}
