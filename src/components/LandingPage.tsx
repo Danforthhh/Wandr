@@ -2,297 +2,307 @@ interface Props {
   onGetStarted: () => void
 }
 
-const WandrLogo = ({ size = 32, color = '#6366f1' }: { size?: number; color?: string }) => (
+// ── Compass logo ──────────────────────────────────────────────────────────────
+const CompassLogo = ({ size = 32, color = '#f97316' }: { size?: number; color?: string }) => (
   <svg viewBox="0 0 32 32" width={size} height={size} xmlns="http://www.w3.org/2000/svg">
-    <circle cx="16" cy="16" r="13" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4"/>
-    <path d="M16 5 L21 16 L16 14 L11 16 Z" fill={color}/>
-    <path d="M13 17 L16 14 L19 17 L16 26 Z" fill={color} opacity="0.7"/>
-    <path d="M9 12.5 L16 14 L23 12.5 L21 16 L16 14 L11 16 Z" fill={color} opacity="0.45"/>
+    <circle cx="16" cy="16" r="13" fill="none" stroke={color} strokeWidth="1.2" opacity="0.5"/>
+    <line x1="16" y1="3"  x2="16" y2="6.5"  stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    <line x1="16" y1="25.5" x2="16" y2="29" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.4"/>
+    <line x1="3"  y1="16" x2="6.5"  y2="16" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.4"/>
+    <line x1="25.5" y1="16" x2="29" y2="16" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.4"/>
+    <polygon points="16,6 18.5,16 16,14 13.5,16" fill={color}/>
+    <polygon points="16,26 18.5,16 16,18 13.5,16" fill={color} opacity="0.3"/>
+    <circle cx="16" cy="16" r="1.8" fill={color}/>
   </svg>
 )
 
-const Check = () => (
-  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mt-0.5">
-    <circle cx="8" cy="8" r="8" fill="#6366f1" opacity="0.15"/>
-    <path d="M4.5 8l2.5 2.5 4.5-5" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
+// ── Data ──────────────────────────────────────────────────────────────────────
+const DESTINATIONS = [
+  { flag: '🗼', name: 'Paris' },
+  { flag: '🌸', name: 'Tokyo' },
+  { flag: '🏝️', name: 'Bali' },
+  { flag: '🗽', name: 'New York' },
+  { flag: '🏛️', name: 'Rome' },
+  { flag: '🌊', name: 'Santorini' },
+  { flag: '🦁', name: 'Nairobi' },
+  { flag: '🎭', name: 'Barcelona' },
+  { flag: '🏔️', name: 'Queenstown' },
+  { flag: '🌴', name: 'Tulum' },
+  { flag: '🍜', name: 'Bangkok' },
+  { flag: '🎑', name: 'Kyoto' },
+]
 
 const FEATURES = [
   {
-    icon: '⚡',
-    title: 'AI itinerary generation',
-    desc: 'Day-by-day plans tailored to your destination, interests, and budget — generated in seconds.',
+    icon: '🗓️',
+    title: 'Day-by-day itinerary',
+    desc: 'Claude crafts a full schedule around your interests, pace, and budget — not a generic template.',
   },
   {
     icon: '🗺️',
-    title: 'Interactive map',
-    desc: 'Every activity pinned on a live map. Explore your trip visually before you even leave home.',
+    title: 'Everything on the map',
+    desc: 'Every activity, restaurant, and landmark pinned on a live interactive map. Visualize before you go.',
   },
   {
     icon: '🧳',
-    title: 'Smart packing lists',
-    desc: 'Context-aware checklists based on your destination, season, and trip type. Never forget a thing.',
+    title: 'Smart packing list',
+    desc: 'What to bring for a hike through Patagonia is very different from a weekend in Paris. Wandr knows.',
   },
   {
     icon: '💬',
-    title: 'AI travel chat',
-    desc: 'Ask anything about your destination — local tips, weather, culture, restaurants — in real time.',
+    title: 'Your AI travel companion',
+    desc: 'Ask about visa requirements, local customs, what to eat, when to avoid tourist crowds. Any question.',
   },
   {
-    icon: '🔍',
-    title: 'Live travel search',
-    desc: 'Real-time flight, hotel, and activity search powered by Perplexity. Always up to date.',
+    icon: '🔭',
+    title: 'Real-time search',
+    desc: 'Live flight, hotel, and activity availability via Perplexity. Always current, never stale.',
   },
   {
-    icon: '🔒',
-    title: 'Your trips, your data',
-    desc: 'All trips saved to your account and synced across devices. Private by default.',
+    icon: '📸',
+    title: 'Bring your inspiration',
+    desc: 'Upload photos, PDFs, or notes. Wandr reads them and builds your plan around what you already love.',
   },
 ]
 
 const STEPS = [
   {
-    n: '1',
-    title: 'Describe your trip',
-    desc: 'Enter destination, dates, travelers, interests, and budget. Upload inspiration or notes.',
+    icon: '✍️',
+    title: 'Tell us where you\'re headed',
+    desc: 'Destination, dates, who you\'re with, what you love. Takes 60 seconds.',
   },
   {
-    n: '2',
-    title: 'AI builds your plan',
-    desc: 'Claude generates a full itinerary, packing list, and trip overview tailored to your style.',
+    icon: '✨',
+    title: 'AI builds your entire trip',
+    desc: 'Itinerary, packing list, budget breakdown — personalized to you, not copy-pasted from a blog.',
   },
   {
-    n: '3',
-    title: 'Explore & adjust',
-    desc: 'Chat with AI, search real-time info, view everything on an interactive map. Ready to go.',
+    icon: '🌍',
+    title: 'Go explore',
+    desc: 'Adjust on the fly, chat with AI, search live info. Your plan travels with you.',
   },
 ]
 
-const FREE_FEATURES = ['Unlimited trips', 'Groq Llama 3.3 70B (DEV)', 'Itinerary & packing list', 'AI chat + map']
-const PRO_FEATURES  = ['Unlimited trips', 'Claude + Perplexity (PROD)', 'Real-time travel search', 'AI chat + map', 'File & photo upload']
-
 export default function LandingPage({ onGetStarted }: Props) {
   return (
-    <div className="min-h-screen bg-[#0a0a1a] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0b0b10] text-white overflow-x-hidden">
 
-      {/* ── Nav ─────────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-[#0a0a1a]/80 backdrop-blur-md border-b border-white/10">
+      {/* ── Nav ──────────────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-[#0b0b10]/80 backdrop-blur-md border-b border-white/[0.07]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <WandrLogo size={28}/>
-            <span className="text-sm font-bold tracking-tight">Wandr</span>
+            <CompassLogo size={26}/>
+            <span className="text-sm font-bold tracking-tight text-white">Wandr</span>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={onGetStarted}
-              className="text-sm text-slate-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0"
+              className="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0"
             >
               Sign in
             </button>
             <button
               onClick={onGetStarted}
-              className="text-sm font-semibold px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-full transition-colors cursor-pointer border-0"
+              className="text-sm font-semibold px-4 py-1.5 bg-orange-500 hover:bg-orange-400 text-white rounded-full transition-colors cursor-pointer border-0"
             >
-              Start planning free
+              Plan a trip →
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="relative pt-24 pb-20 px-6 text-center overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none"/>
-        <div className="absolute top-20 left-1/4 w-[300px] h-[200px] bg-violet-600/10 blur-[80px] rounded-full pointer-events-none"/>
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative pt-20 pb-16 px-6 overflow-hidden">
+        {/* Warm glow orbs */}
+        <div className="absolute top-0 right-0 w-[700px] h-[500px] bg-orange-600/10 blur-[140px] rounded-full pointer-events-none"/>
+        <div className="absolute top-32 left-0 w-[400px] h-[300px] bg-teal-500/8 blur-[100px] rounded-full pointer-events-none"/>
 
-        <div className="relative max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"/>
-            AI-powered trip planning
+        <div className="relative max-w-6xl mx-auto">
+          <div className="max-w-2xl">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-xs font-medium mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"/>
+              Your AI travel planner
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6">
+              The world<br/>
+              is waiting.{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400">
+                Go explore it.
+              </span>
+            </h1>
+
+            <p className="text-lg text-stone-400 leading-relaxed mb-10 max-w-lg">
+              Tell Wandr where you want to go. It handles the rest — full itinerary,
+              packing list, interactive map, and a travel companion you can ask anything.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <button
+                onClick={onGetStarted}
+                className="w-full sm:w-auto px-8 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-orange-900/30"
+              >
+                Start planning — it's free
+              </button>
+              <button
+                onClick={onGetStarted}
+                className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/8 border border-white/10 text-white font-semibold rounded-xl transition-colors cursor-pointer text-base"
+              >
+                Sign in
+              </button>
+            </div>
+            <p className="text-xs text-stone-600">No credit card · No setup · Works in 60 seconds</p>
           </div>
+        </div>
+      </section>
 
-          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-            Plan your next adventure.<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
-              Powered by AI.
-            </span>
-          </h1>
-
-          <p className="text-lg text-slate-400 leading-relaxed max-w-xl mx-auto mb-10">
-            Wandr builds your full trip itinerary, packing list, and real-time travel recommendations
-            in seconds — so you can spend less time planning and more time exploring.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+      {/* ── Destination chips ─────────────────────────────────────────────── */}
+      <section className="pb-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-xs text-stone-600 uppercase tracking-widest mb-4 font-medium">Popular destinations</p>
+          <div className="flex flex-wrap gap-2.5">
+            {DESTINATIONS.map(d => (
+              <button
+                key={d.name}
+                onClick={onGetStarted}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-orange-500/30 hover:bg-orange-500/5 text-sm text-stone-300 hover:text-white transition-all cursor-pointer"
+              >
+                <span>{d.flag}</span>
+                <span>{d.name}</span>
+              </button>
+            ))}
             <button
               onClick={onGetStarted}
-              className="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-indigo-900/50"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-sm text-orange-300 hover:text-orange-200 transition-all cursor-pointer"
             >
-              Start planning free
-            </button>
-            <button
-              onClick={onGetStarted}
-              className="w-full sm:w-auto px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-xl transition-colors cursor-pointer text-base"
-            >
-              See how it works →
+              + anywhere else
             </button>
           </div>
-
-          <p className="text-xs text-slate-500">
-            Free tier included · No credit card · Real AI recommendations
-          </p>
         </div>
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="px-6 pb-24 bg-[#0d0d1f]">
-        <div className="max-w-4xl mx-auto pt-20">
-          <div className="text-center mb-14">
-            <h2 className="text-2xl font-bold mb-2">How it works</h2>
-            <p className="text-slate-400 text-sm">From idea to full trip plan in 3 steps</p>
+      <section className="px-6 py-24 bg-[#0e0c09]">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-16">
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">How it works</p>
+            <h2 className="text-3xl font-bold">From idea to trip plan<br/>in three steps.</h2>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-8 relative">
-            <div className="hidden sm:block absolute top-7 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-px bg-gradient-to-r from-indigo-500/20 via-indigo-500/40 to-indigo-500/20"/>
-
+          <div className="grid sm:grid-cols-3 gap-px bg-white/[0.05] rounded-2xl overflow-hidden">
             {STEPS.map((step, i) => (
-              <div key={i} className="flex flex-col items-center text-center">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-2xl font-black text-indigo-400 mb-4 relative z-10">
-                  {step.n}
-                </div>
-                <h3 className="font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">{step.desc}</p>
+              <div key={i} className="bg-[#0e0c09] p-8 hover:bg-white/[0.02] transition-colors">
+                <div className="text-3xl mb-5">{step.icon}</div>
+                <div className="text-[10px] font-bold text-stone-600 uppercase tracking-widest mb-2">Step {i + 1}</div>
+                <h3 className="font-semibold text-base mb-3 leading-snug">{step.title}</h3>
+                <p className="text-sm text-stone-400 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Features grid ────────────────────────────────────────────────── */}
-      <section className="px-6 pb-24">
-        <div className="max-w-5xl mx-auto pt-20">
-          <div className="text-center mb-14">
-            <h2 className="text-2xl font-bold mb-2">Everything you need for your next trip</h2>
-            <p className="text-slate-400 text-sm">Built for solo travelers, couples, families, and groups</p>
+      {/* ── Features ─────────────────────────────────────────────────────── */}
+      <section className="px-6 py-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-16">
+            <p className="text-teal-400 text-sm font-semibold uppercase tracking-widest mb-3">What's included</p>
+            <h2 className="text-3xl font-bold">Everything in one place.<br/>Nothing left to figure out.</h2>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f, i) => (
               <div
                 key={i}
-                className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] hover:border-indigo-500/30 hover:bg-white/[0.05] transition-all"
+                className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-orange-500/20 hover:bg-white/[0.05] transition-all group"
               >
-                <div className="text-2xl mb-3">{f.icon}</div>
-                <h3 className="font-semibold text-sm mb-1.5">{f.title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{f.desc}</p>
+                <div className="text-2xl mb-4">{f.icon}</div>
+                <h3 className="font-semibold text-sm mb-2 group-hover:text-orange-200 transition-colors">{f.title}</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Pricing ──────────────────────────────────────────────────────── */}
-      <section className="px-6 pb-24 bg-[#0d0d1f]">
-        <div className="max-w-3xl mx-auto pt-20">
-          <div className="text-center mb-14">
-            <h2 className="text-2xl font-bold mb-2">Simple pricing</h2>
-            <p className="text-slate-400 text-sm">Start free in DEV mode. Switch to PROD for Claude-quality plans.</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-5">
-            {/* Free card */}
-            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col">
-              <div className="mb-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Free — DEV mode</div>
-                <div className="text-4xl font-extrabold">$0</div>
-                <div className="text-xs text-slate-500 mt-1">No credit card required</div>
-              </div>
-              <ul className="space-y-2.5 mb-6 flex-1">
-                {FREE_FEATURES.map(f => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                    <Check/>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={onGetStarted}
-                className="w-full py-2.5 rounded-xl border border-white/10 text-sm font-semibold hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
-              >
-                Start free
-              </button>
+      {/* ── Included banner ──────────────────────────────────────────────── */}
+      <section className="px-6 py-24 bg-[#0e0c09]">
+        <div className="max-w-5xl mx-auto">
+          <div className="rounded-3xl border border-white/[0.07] overflow-hidden">
+            {/* Top strip */}
+            <div className="bg-gradient-to-r from-orange-500/20 via-amber-500/10 to-teal-500/10 px-8 py-5 border-b border-white/[0.06]">
+              <p className="text-sm font-semibold text-white">Everything is free.</p>
+              <p className="text-xs text-stone-400 mt-0.5">No subscription, no API key required. Just create an account and go.</p>
             </div>
-
-            {/* Pro card */}
-            <div className="p-6 rounded-2xl bg-indigo-600/10 border border-indigo-500/30 flex flex-col relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase tracking-wider">
-                Best quality
-              </div>
-              <div className="mb-4">
-                <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">PROD mode</div>
-                <div className="text-4xl font-extrabold">Free</div>
-                <div className="text-xs text-slate-400 mt-1">Powered by Cloudflare Worker</div>
-              </div>
-              <ul className="space-y-2.5 mb-6 flex-1">
-                {PRO_FEATURES.map(f => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-200">
-                    <Check/>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={onGetStarted}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-colors cursor-pointer border-0"
-              >
-                Get started →
-              </button>
+            {/* Features grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-white/[0.05]">
+              {[
+                { icon: '🗓️', label: 'AI itineraries' },
+                { icon: '🧳', label: 'Packing lists' },
+                { icon: '🗺️', label: 'Interactive map' },
+                { icon: '💬', label: 'AI travel chat' },
+                { icon: '🔭', label: 'Live search' },
+                { icon: '📸', label: 'File upload' },
+                { icon: '☁️', label: 'Cloud sync' },
+                { icon: '♾️', label: 'Unlimited trips' },
+              ].map(item => (
+                <div key={item.label} className="px-6 py-5 flex items-center gap-3">
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-sm text-stone-300">{item.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA banner ───────────────────────────────────────────────────── */}
-      <section className="px-6 pb-24">
-        <div className="max-w-2xl mx-auto pt-20 text-center">
-          <div className="relative p-10 rounded-3xl bg-gradient-to-br from-indigo-600/20 via-violet-600/10 to-transparent border border-indigo-500/20 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-transparent pointer-events-none"/>
-            <WandrLogo size={40} color="#818cf8"/>
-            <h2 className="text-2xl font-bold mt-4 mb-3">
-              Ready to plan your next adventure?
-            </h2>
-            <p className="text-slate-400 text-sm mb-8">
-              Free tier included. No credit card. Setup in 30 seconds.
-            </p>
-            <button
-              onClick={onGetStarted}
-              className="px-10 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-indigo-900/50"
-            >
-              Start planning free
-            </button>
+      {/* ── CTA ──────────────────────────────────────────────────────────── */}
+      <section className="px-6 py-24">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="relative p-12 rounded-3xl overflow-hidden border border-white/[0.07]">
+            {/* Warm gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-600/15 via-amber-600/8 to-teal-600/8 pointer-events-none"/>
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] rounded-full pointer-events-none"/>
+
+            <div className="relative">
+              <CompassLogo size={44} color="#fb923c"/>
+              <h2 className="text-3xl font-extrabold mt-6 mb-3 leading-tight">
+                Your next adventure<br/>starts here.
+              </h2>
+              <p className="text-stone-400 text-sm mb-8 max-w-sm mx-auto">
+                Sign up in 30 seconds. Your first itinerary in under a minute.
+              </p>
+              <button
+                onClick={onGetStarted}
+                className="px-10 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-orange-900/30"
+              >
+                Start planning free →
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 px-6 py-10">
+      <footer className="border-t border-white/[0.06] px-6 py-10">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <WandrLogo size={22}/>
-            <span className="text-sm text-slate-400">AI trip planning, anywhere you go.</span>
+            <CompassLogo size={20}/>
+            <span className="text-sm text-stone-500">Wandr — plan less, explore more.</span>
           </div>
-          <div className="flex items-center gap-5 text-xs text-slate-500">
+          <div className="flex items-center gap-5 text-xs text-stone-600">
             <a
               href="https://github.com/Danforthhh/Wandr"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-slate-300 transition-colors"
+              className="hover:text-stone-300 transition-colors"
             >
               GitHub
             </a>
             <button
               onClick={onGetStarted}
-              className="hover:text-slate-300 transition-colors cursor-pointer bg-transparent border-0 text-xs text-slate-500"
+              className="hover:text-stone-300 transition-colors cursor-pointer bg-transparent border-0 text-xs text-stone-600"
             >
               Sign in
             </button>
