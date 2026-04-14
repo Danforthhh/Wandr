@@ -85,7 +85,12 @@ export default function DevModeToggle({ devMode, onToggle }: Props) {
     return (
       <button
         onClick={() => onToggle(true)}
-        title={'Claude API — high-quality generation\nClick to switch to Free mode'}
+        title={[
+          'Claude + Perplexity — full quality',
+          '  · Claude (Anthropic) — generation, itinerary, vision',
+          '  · Perplexity — real-time travel search & chat',
+          'Click to switch to Free mode',
+        ].join('\n')}
         style={{ ...BASE, background: '#4f46e5' }}
         onMouseEnter={e => hover(e, true)}
         onMouseLeave={e => hover(e, false)}
@@ -123,12 +128,13 @@ export default function DevModeToggle({ devMode, onToggle }: Props) {
 
   const tooltip = stats
     ? [
-        'Free mode — Groq (Llama 3.3 70B) + Tavily search',
-        `Searches: ${searches} / ${limit} used (${pct}%) · resets ${reset}`,
-        `Tavily remaining: ${stats.remaining}`,
-        'Click to switch to Claude mode',
+        'Free mode',
+        `  · 🤖 Groq Llama 3.3 70B — generation (TPM-limited, not tracked)`,
+        `  · 🔍 Tavily — web search: ${searches} / ${limit} used (${pct}%) · resets ${reset}`,
+        `     ${stats.remaining} searches remaining`,
+        'Click to switch to Claude + Perplexity mode',
       ].join('\n')
-    : 'Free mode — Groq + Tavily\nLoading usage…\nClick to switch to Claude mode'
+    : 'Free mode — Groq (generation) + Tavily (search)\nLoading usage…\nClick to switch to Claude + Perplexity mode'
 
   return (
     <button
@@ -143,12 +149,12 @@ export default function DevModeToggle({ devMode, onToggle }: Props) {
       {stats ? (
         <>
           <span style={{ opacity: 0.4 }}>·</span>
-          {/* fraction — color shifts as limit approaches */}
+          {/* 🔍 Tavily quota — Groq has TPM limits but no monthly quota to display */}
+          <span style={{ opacity: 0.7, fontSize: 10 }}>🔍</span>
           <span style={{ color: barColor, fontWeight: 700 }}>
             {searches}
             <span style={{ opacity: 0.6, fontWeight: 400 }}>/{limit}</span>
           </span>
-          <span style={{ opacity: 0.8 }}>🔍</span>
           <UsageBar pct={pct} color={barColor} />
         </>
       ) : (
