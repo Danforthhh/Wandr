@@ -38,8 +38,18 @@ function KeySection({ label, hint, placeholder, value, sessionPassword, uid, key
 
   const masked = value ? value.slice(0, 6) + '••••••••' + value.slice(-4) : null
 
+  const KEY_PREFIX: Record<'claude' | 'perplexity', string> = {
+    claude:      'sk-ant-',
+    perplexity:  'pplx-',
+  }
+
   const handleSave = async () => {
     if (!input.trim() || !sessionPassword) return
+    const prefix = KEY_PREFIX[keyType]
+    if (!input.trim().startsWith(prefix)) {
+      setErr(`Key must start with "${prefix}"`)
+      return
+    }
     setSaving(true); setErr('')
     try {
       const bundle = await encryptApiKey(input.trim(), sessionPassword)
@@ -67,7 +77,10 @@ function KeySection({ label, hint, placeholder, value, sessionPassword, uid, key
     return (
       <div>
         <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</div>
-        <p className="text-xs text-slate-500">Sign out and sign back in to manage API keys.</p>
+        <p className="text-xs text-slate-500">
+          Sign out and sign back in to manage API keys.{' '}
+          <span className="text-slate-600">(Session password required for encryption.)</span>
+        </p>
       </div>
     )
   }
@@ -108,7 +121,7 @@ function KeySection({ label, hint, placeholder, value, sessionPassword, uid, key
       ) : (
         <div className="space-y-2">
           <input
-            type="text"
+            type="password"
             placeholder={placeholder}
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -205,7 +218,8 @@ export default function AccountModal({ session, sessionPassword, claudeKey, pplx
           <div className="border-t border-slate-800 pt-4 space-y-5">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">PROD API Keys</div>
             <p className="text-xs text-slate-500 -mt-3">
-              Required when DEV mode is off. Keys are encrypted with your password and stored in Firestore — never sent to our servers in plain text.
+              Required in Claude · Pplx mode. Encrypted with your password before storage — never sent to our servers in plain text.
+              In PROD mode, keys transit directly to Anthropic/Perplexity from your browser and are visible in your Network tab. Only add keys you can rotate if compromised.
             </p>
 
             <KeySection

@@ -17,7 +17,8 @@ export function setApiKeys(claude: string | null, pplx: string | null) {
 
 const WORKER_DEV = 'https://dev-proxy.vin-bories.workers.dev';
 
-function devMode() { return localStorage.getItem('devMode') === 'true'; }
+// Mirror App.tsx default: free unless explicitly set to 'false'
+function devMode() { return localStorage.getItem('devMode') !== 'false'; }
 
 function claudeUrl() {
   return devMode()

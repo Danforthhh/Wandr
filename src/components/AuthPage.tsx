@@ -5,7 +5,7 @@ import {
   AuthError,
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { persistPassword } from '../services/cryptoService';
+import { persistPassword, clearPersistedPassword } from '../services/cryptoService';
 import { Plane, Mail, Lock, Loader2 } from 'lucide-react';
 
 type Mode = 'login' | 'create';
@@ -41,7 +41,9 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
     try {
-      // Persist password BEFORE Firebase auth so App.tsx useEffect can decrypt keys
+      // Persist BEFORE Firebase so App.tsx useEffect finds the password when
+      // onAuthStateChanged fires (which happens during the await, before it resolves).
+      // Cleared in the catch block if auth fails, so no stale password is kept.
       persistPassword(password);
       if (mode === 'create') {
         await createUserWithEmailAndPassword(auth, email, password);
@@ -50,6 +52,7 @@ export default function AuthPage() {
       }
       // onAuthStateChanged in useAuth() handles the rest
     } catch (err) {
+      clearPersistedPassword(); // remove the pre-persisted password on auth failure
       setError(friendlyError((err as AuthError).code));
     } finally {
       setLoading(false);

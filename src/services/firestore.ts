@@ -110,9 +110,10 @@ export async function saveEncryptedKey(uid: string, type: KeyType, bundle: Encry
 
 export async function removeEncryptedKey(uid: string, type: KeyType): Promise<void> {
   const f = keyFields(type);
-  await updateDoc(settingsDoc(uid), {
+  // Use setDoc+merge instead of updateDoc so this never throws if the doc doesn't exist
+  await setDoc(settingsDoc(uid), {
     [f.enc]:  deleteField(),
     [f.salt]: deleteField(),
     [f.iv]:   deleteField(),
-  });
+  }, { merge: true });
 }
