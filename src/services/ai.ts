@@ -2,18 +2,57 @@ import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '.
 import { logActivity } from './activityLog';
 import { logger } from './logger';
 
-// ─── Cloudflare Worker proxy ─────────────────────────────────────────────────
-// PROD: Cloudflare Worker (API keys stored as secrets — never in the bundle)
-// DEV:  Cloudflare Worker dev-proxy — free Groq (llama-3.3-70b) + Tavily search
-// Switch via the DEV/PROD toggle in the UI (persisted to localStorage).
-const WORKER_URL_PROD = 'https://wandr.vin-bories.workers.dev';
-const WORKER_URL_DEV  = 'https://dev-proxy.vin-bories.workers.dev';
-const getWorkerUrl = () =>
-  localStorage.getItem('devMode') === 'true' ? WORKER_URL_DEV : WORKER_URL_PROD;
+// ─── API key store (set by App.tsx after decryption) ─────────────────────────
+let _claudeKey: string | null = null;
+let _pplxKey:   string | null = null;
+
+export function setApiKeys(claude: string | null, pplx: string | null) {
+  _claudeKey = claude;
+  _pplxKey   = pplx;
+}
+
+// ─── Routing ──────────────────────────────────────────────────────────────────
+// DEV:  free Cloudflare Worker proxy (Groq + Tavily) — no key needed
+// PROD: direct calls to api.anthropic.com / api.perplexity.ai with user keys
+
+const WORKER_DEV = 'https://dev-proxy.vin-bories.workers.dev';
+
+function devMode() { return localStorage.getItem('devMode') === 'true'; }
+
+function claudeUrl() {
+  return devMode()
+    ? `${WORKER_DEV}/anthropic/v1/messages`
+    : 'https://api.anthropic.com/v1/messages';
+}
+
+function pplxUrl() {
+  return devMode()
+    ? `${WORKER_DEV}/perplexity/chat/completions`
+    : 'https://api.perplexity.ai/chat/completions';
+}
+
+function claudeHeaders(): Record<string, string> {
+  if (devMode()) return { 'Content-Type': 'application/json' };
+  if (!_claudeKey) throw new Error('No Anthropic API key — add it in Settings.');
+  return {
+    'Content-Type':                          'application/json',
+    'x-api-key':                             _claudeKey,
+    'anthropic-version':                     '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true',
+  };
+}
+
+function pplxHeaders(): Record<string, string> {
+  if (devMode()) return { 'Content-Type': 'application/json' };
+  if (!_pplxKey) throw new Error('No Perplexity API key — add it in Settings.');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${_pplxKey}`,
+  };
+}
 
 // ─── Perplexity ───────────────────────────────────────────────────────────────
 
-const PPLX_URL         = () => `${getWorkerUrl()}/perplexity/chat/completions`;
 const PPLX_MODEL        = 'sonar-pro';
 const PPLX_SEARCH_MODEL = 'sonar';
 
@@ -33,9 +72,9 @@ async function callPerplexity(
     lastUserMessage: messages[messages.length - 1]?.content?.slice(0, 200),
   });
 
-  const res = await fetch(PPLX_URL(), {
+  const res = await fetch(pplxUrl(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: pplxHeaders(),
     body: JSON.stringify({ model, max_tokens: maxTokens, messages: allMessages }),
   });
 
@@ -55,7 +94,6 @@ async function callPerplexity(
 
 // ─── Claude ───────────────────────────────────────────────────────────────────
 
-const CLAUDE_URL   = () => `${getWorkerUrl()}/anthropic/v1/messages`;
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 
 type ClaudeContentBlock =
@@ -79,9 +117,9 @@ async function callClaude(
     preview,
   });
 
-  const res = await fetch(CLAUDE_URL(), {
+  const res = await fetch(claudeUrl(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: claudeHeaders(),
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: maxTokens,
@@ -117,7 +155,6 @@ export function buildClaudeContent(prompt: string, context?: TripContext): strin
   const pdfFiles  = files.filter(f => f.mimeType === 'application/pdf');
   const txtFiles  = files.filter(f => f.mimeType === 'text/plain' || f.mimeType === 'text/markdown');
 
-  // No binary files → return enriched text
   if (!imgFiles.length && !pdfFiles.length) {
     let enriched = '';
     if (context.text) enriched += `User notes: ${context.text}\n\n`;
@@ -127,7 +164,6 @@ export function buildClaudeContent(prompt: string, context?: TripContext): strin
     return enriched + prompt;
   }
 
-  // Build multimodal array
   const blocks: ClaudeContentBlock[] = [];
   for (const f of imgFiles) {
     blocks.push({ type: 'image', source: { type: 'base64', media_type: f.mimeType, data: f.dataBase64 } });
@@ -147,9 +183,7 @@ export function buildClaudeContent(prompt: string, context?: TripContext): strin
   return blocks;
 }
 
-// ─── Generation helper (Claude only) ─────────────────────────────────────────
-// Trip creation, itinerary, and packing list always use Claude for reliable
-// structured JSON output. Chat and search use Perplexity for real-time web data.
+// ─── Generation helper ────────────────────────────────────────────────────────
 
 async function callGeneration(
   prompt: string,
@@ -163,8 +197,6 @@ async function callGeneration(
 
 // ─── JSON parse / shape helpers ───────────────────────────────────────────────
 
-// After parsing, unwrap arrays that Perplexity sometimes wraps in an object.
-// e.g. {"itinerary":[...]} or {"days":[...]} → returns the inner array.
 export function asArray<T>(parsed: unknown): T[] {
   if (Array.isArray(parsed)) return parsed as T[];
   if (parsed && typeof parsed === 'object') {
@@ -175,15 +207,13 @@ export function asArray<T>(parsed: unknown): T[] {
   throw new Error(`AI returned an unexpected format. Please try again.`);
 }
 
-// Walk a string to find the closing bracket/brace that matches the opener at `start`.
-// Respects string literals and escape sequences so citation markers like [1] are ignored.
 export function extractBalanced(text: string, start: number, open: string, close: string): string | null {
   let depth = 0;
   let inString = false;
   for (let i = start; i < text.length; i++) {
     const ch = text[i];
     if (inString) {
-      if (ch === '\\') { i++; continue; } // skip escaped char
+      if (ch === '\\') { i++; continue; }
       if (ch === '"') inString = false;
       continue;
     }
@@ -195,26 +225,20 @@ export function extractBalanced(text: string, start: number, open: string, close
 }
 
 export function parseJSON<T>(raw: string): T {
-  // Strip markdown code fences that Perplexity/Claude sometimes add
   const stripped = raw
     .replace(/^```(?:json|JSON)?\s*/m, '')
     .replace(/```\s*$/m, '')
     .trim();
 
-  // Try candidates in order: stripped, original
   for (const candidate of [stripped, raw]) {
-    // 1. Direct parse
     try { return JSON.parse(candidate) as T; } catch { /* try next strategy */ }
 
-    // 2. Extract outermost JSON structure using balanced-bracket walk.
-    //    Try whichever bracket type ({ or [) appears first in the text,
-    //    so an array response isn't mistakenly parsed as its first child object.
     const objIdx = candidate.indexOf('{');
     const arrIdx = candidate.indexOf('[');
     const pairs: Array<[number, string, string]> = [];
     if (objIdx !== -1) pairs.push([objIdx, '{', '}']);
     if (arrIdx !== -1) pairs.push([arrIdx, '[', ']']);
-    pairs.sort((a, b) => a[0] - b[0]); // leftmost structure first
+    pairs.sort((a, b) => a[0] - b[0]);
 
     for (const [start, open, close] of pairs) {
       const extracted = extractBalanced(candidate, start, open, close);
@@ -245,8 +269,7 @@ export async function generateTripDetails(params: {
   travelers: number;
   context?: TripContext;
 }): Promise<TripOverview> {
-  const { destination, startDate, endDate, interests, budget, travelers,
-          context } = params;
+  const { destination, startDate, endDate, interests, budget, travelers, context } = params;
 
   const actId = logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
@@ -280,9 +303,7 @@ Fill in this JSON exactly (no other text):
 
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 
-export async function generateItinerary(
-  trip: Trip
-): Promise<ItineraryDay[]> {
+export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
@@ -317,8 +338,6 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
     const result = asArray<ItineraryDay>(parseJSON<unknown>(text))
       .filter((day): day is ItineraryDay => day != null)
       .map((day, i) => {
-        // Recompute date from trip start + index — Perplexity often returns
-        // non-ISO date strings ("October 10, 2026") that break new Date().
         const d = new Date(trip.startDate + 'T12:00:00');
         d.setDate(d.getDate() + i);
         return {
@@ -341,9 +360,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
 
 // ─── Packing List ─────────────────────────────────────────────────────────────
 
-export async function generatePackingList(
-  trip: Trip
-): Promise<PackingItem[]> {
+export async function generatePackingList(trip: Trip): Promise<PackingItem[]> {
   const days =
     Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000) + 1;
 
@@ -394,10 +411,8 @@ Be concise and specific. 2-4 sentences per answer.`;
   try {
     let result: string;
 
-    // Use Claude when attachments are present (vision support), otherwise Perplexity
     if (attachments?.length) {
       const content = buildClaudeContent(userMessage, { files: attachments });
-      // Prepend history as text context since Claude messages need alternating roles
       const historyContext = history.length
         ? `Previous conversation:\n${history.map(m => `${m.role}: ${m.content}`).join('\n')}\n\n`
         : '';
@@ -422,12 +437,9 @@ Be concise and specific. 2-4 sentences per answer.`;
   }
 }
 
-// ─── Travel Search (Perplexity Sonar — real-time web) ────────────────────────
+// ─── Travel Search ────────────────────────────────────────────────────────────
 
-export async function searchTravel(
-  query: string,
-  trip: Trip
-): Promise<string> {
+export async function searchTravel(query: string, trip: Trip): Promise<string> {
   const actId = logActivity({ message: 'Searching travel info…', status: 'pending' });
 
   const system = `You are a real-time travel search assistant. The user is planning a trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate} with ${trip.travelers} traveler(s), budget ${trip.currency}${trip.budget}. Provide up-to-date, specific answers using web search. Be concise but thorough. Use clear sections when listing multiple items.`;

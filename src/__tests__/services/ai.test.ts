@@ -5,11 +5,12 @@ import {
   asArray,
   buildClaudeContent,
   generateTripDetails,
+  setApiKeys,
 } from '../../services/ai';
 import { clearLogs } from '../../services/logger';
 
 beforeEach(() => clearLogs());
-afterEach(() => vi.clearAllMocks());
+afterEach(() => { vi.clearAllMocks(); setApiKeys(null, null); });
 
 // ── extractBalanced ───────────────────────────────────────────────────────────
 
@@ -184,6 +185,8 @@ describe('buildClaudeContent', () => {
 // ── generateTripDetails (network) ─────────────────────────────────────────────
 
 describe('generateTripDetails', () => {
+  beforeEach(() => setApiKeys('sk-ant-test-key', null));
+
   const BASE_PARAMS = {
     destination: 'Kyoto',
     startDate: '2026-05-01',

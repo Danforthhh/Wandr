@@ -73,32 +73,46 @@ export async function deleteAllUserData(uid: string): Promise<void> {
   await batch.commit();
 }
 
-// ── Encrypted key bundle ──────────────────────────────────────────────────────
-// Infrastructure for future client-side key storage.
-// Path: users/{uid}/settings/main (shared with existing settings doc, merge: true)
+// ── Encrypted key bundles ─────────────────────────────────────────────────────
+// Two keys: 'claude' (Anthropic) and 'perplexity'.
+// Path: users/{uid}/settings/main — merged into the existing settings doc.
+// Field layout:
+//   claude      → claudeEncKey / claudeSalt / claudeIv
+//   perplexity  → pplxEncKey   / pplxSalt   / pplxIv
 
 export type { EncryptedKeyBundle };
 
-export async function getEncryptedKey(uid: string): Promise<EncryptedKeyBundle | null> {
+export type KeyType = 'claude' | 'perplexity';
+
+function keyFields(type: KeyType) {
+  return type === 'claude'
+    ? { enc: 'claudeEncKey', salt: 'claudeSalt', iv: 'claudeIv' }
+    : { enc: 'pplxEncKey',   salt: 'pplxSalt',   iv: 'pplxIv'  };
+}
+
+export async function getEncryptedKey(uid: string, type: KeyType): Promise<EncryptedKeyBundle | null> {
   const snap = await getDoc(settingsDoc(uid));
   if (!snap.exists()) return null;
   const data = snap.data();
-  if (typeof data.encryptedKey !== 'string' || !data.encryptedKey) return null;
-  return { encryptedKey: data.encryptedKey, keySalt: data.keySalt, keyIv: data.keyIv };
+  const f = keyFields(type);
+  if (typeof data[f.enc] !== 'string' || !data[f.enc]) return null;
+  return { encryptedKey: data[f.enc], keySalt: data[f.salt], keyIv: data[f.iv] };
 }
 
-export async function saveEncryptedKey(uid: string, bundle: EncryptedKeyBundle): Promise<void> {
+export async function saveEncryptedKey(uid: string, type: KeyType, bundle: EncryptedKeyBundle): Promise<void> {
+  const f = keyFields(type);
   await setDoc(settingsDoc(uid), {
-    encryptedKey: bundle.encryptedKey,
-    keySalt:      bundle.keySalt,
-    keyIv:        bundle.keyIv,
+    [f.enc]:  bundle.encryptedKey,
+    [f.salt]: bundle.keySalt,
+    [f.iv]:   bundle.keyIv,
   }, { merge: true });
 }
 
-export async function removeEncryptedKey(uid: string): Promise<void> {
+export async function removeEncryptedKey(uid: string, type: KeyType): Promise<void> {
+  const f = keyFields(type);
   await updateDoc(settingsDoc(uid), {
-    encryptedKey: deleteField(),
-    keySalt:      deleteField(),
-    keyIv:        deleteField(),
+    [f.enc]:  deleteField(),
+    [f.salt]: deleteField(),
+    [f.iv]:   deleteField(),
   });
 }

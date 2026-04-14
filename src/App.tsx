@@ -7,8 +7,10 @@ import { useAuth } from './hooks/useAuth';
 import {
   getTrips, saveTrip, deleteTrip as firestoreDeleteTrip,
   getChats, saveChats,
+  getEncryptedKey,
 } from './services/firestore';
-import { generateTripDetails, generateItinerary, generatePackingList } from './services/ai';
+import { generateTripDetails, generateItinerary, generatePackingList, setApiKeys } from './services/ai';
+import { getPersistedPassword, decryptApiKey, clearPersistedPassword } from './services/cryptoService';
 import AuthPage from './components/AuthPage';
 import LandingPage from './components/LandingPage';
 import AccountModal from './components/AccountModal';
@@ -34,6 +36,23 @@ export default function App() {
   const [showAccount, setShowAccount]   = useState(false);
   const [session, setSession]           = useState<Session | null>(null);
   const [devMode, setDevMode]           = useState(() => localStorage.getItem('devMode') === 'true');
+  const [sessionPassword, setSessionPassword] = useState<string | null>(null);
+  const [claudeKey, setClaudeKey]       = useState<string | null>(null);
+  const [pplxKey, setPplxKey]           = useState<string | null>(null);
+
+  // ── Key decryption ─────────────────────────────────────────────────────────
+
+  const loadKeys = async (uid: string, pw: string) => {
+    const [claudeBundle, pplxBundle] = await Promise.all([
+      getEncryptedKey(uid, 'claude').catch(() => null),
+      getEncryptedKey(uid, 'perplexity').catch(() => null),
+    ]);
+    const cKey = claudeBundle ? await decryptApiKey(claudeBundle, pw).catch(() => null) : null;
+    const pKey = pplxBundle   ? await decryptApiKey(pplxBundle,   pw).catch(() => null) : null;
+    setClaudeKey(cKey);
+    setPplxKey(pKey);
+    setApiKeys(cKey, pKey);
+  };
 
   // Load user data on auth change
   useEffect(() => {
@@ -42,11 +61,19 @@ export default function App() {
       setView('dashboard');
       setSelectedTrip(null);
       setSession(null);
+      setSessionPassword(null);
+      setClaudeKey(null);
+      setPplxKey(null);
+      setApiKeys(null, null);
       setShowLanding(true);
       return;
     }
 
     setSession({ uid: user.uid, email: user.email ?? '' });
+
+    const pw = getPersistedPassword();
+    setSessionPassword(pw);
+    if (pw) loadKeys(user.uid, pw);
 
     let cancelled = false;
     getTrips(user.uid).catch((): Trip[] => []).then(loadedTrips => {
@@ -59,6 +86,7 @@ export default function App() {
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
   const handleLogout = () => {
+    clearPersistedPassword();
     setShowLanding(true);
     signOut(auth).catch(e => console.error('Sign-out failed:', e));
   };
@@ -66,6 +94,10 @@ export default function App() {
   const handleToggleMode = (next: boolean) => {
     localStorage.setItem('devMode', String(next));
     setDevMode(next);
+  };
+
+  const handleKeysUpdated = () => {
+    if (user && sessionPassword) loadKeys(user.uid, sessionPassword);
   };
 
   // ── Trip CRUD ──────────────────────────────────────────────────────────────
@@ -165,9 +197,8 @@ export default function App() {
     return <AuthPage />;
   }
 
-  // Keys are stored in the Cloudflare Worker — always available
-  const hasGenerationKey = true;
-  const hasSearchKey = true;
+  const hasGenerationKey = devMode || !!claudeKey;
+  const hasSearchKey     = devMode || !!pplxKey;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans">
@@ -179,6 +210,10 @@ export default function App() {
       {showAccount && session && (
         <AccountModal
           session={session}
+          sessionPassword={sessionPassword}
+          claudeKey={claudeKey}
+          pplxKey={pplxKey}
+          onKeysUpdated={handleKeysUpdated}
           onLogout={handleLogout}
           onClose={() => setShowAccount(false)}
         />
