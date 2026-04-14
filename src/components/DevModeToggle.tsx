@@ -95,7 +95,7 @@ export default function DevModeToggle({ devMode, onToggle }: Props) {
         onMouseEnter={e => hover(e, true)}
         onMouseLeave={e => hover(e, false)}
       >
-        ✦ Claude
+        ✦ Claude · Pplx
       </button>
     )
   }

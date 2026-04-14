@@ -116,7 +116,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         {!hasAiKey && (
           <div className="mb-6 flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
             <p className="text-sm text-amber-300">
-              AI features are disabled — add your Perplexity API key to generate itineraries, packing lists, and use AI chat.
+              AI features are disabled — add your Claude + Perplexity API keys in Settings to generate itineraries, packing lists, and use AI chat.
             </p>
             <button
               onClick={onSettingsClick}

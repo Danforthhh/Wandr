@@ -35,7 +35,8 @@ export default function App() {
   const [showLanding, setShowLanding]   = useState(true);
   const [showAccount, setShowAccount]   = useState(false);
   const [session, setSession]           = useState<Session | null>(null);
-  const [devMode, setDevMode]           = useState(() => localStorage.getItem('devMode') === 'true');
+  // Default to free mode — users opt in to Claude/Perplexity by switching manually
+  const [devMode, setDevMode]           = useState(() => localStorage.getItem('devMode') !== 'false');
   const [sessionPassword, setSessionPassword] = useState<string | null>(null);
   const [claudeKey, setClaudeKey]       = useState<string | null>(null);
   const [pplxKey, setPplxKey]           = useState<string | null>(null);
