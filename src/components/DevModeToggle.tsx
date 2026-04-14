@@ -30,6 +30,34 @@ function formatResetDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// ── Shared button style ────────────────────────────────────────────────────────
+
+const BASE: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 7,
+  padding: '5px 13px', border: 'none', borderRadius: 20,
+  color: '#fff', fontSize: 12, fontFamily: 'monospace',
+  fontWeight: 600, letterSpacing: 0.4,
+  cursor: 'pointer', transition: 'filter 0.15s', lineHeight: 1.4,
+}
+
+// ── Usage bar ──────────────────────────────────────────────────────────────────
+
+function UsageBar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <span style={{
+      display: 'inline-block', width: 32, height: 3,
+      background: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden',
+    }}>
+      <span style={{
+        display: 'block', width: `${pct}%`, height: '100%',
+        background: color, borderRadius: 2, transition: 'width 0.4s',
+      }} />
+    </span>
+  )
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export default function DevModeToggle({ devMode, onToggle }: Props) {
   const [stats,   setStats]   = useState<ProxyStats | null>(null)
   const [offline, setOffline] = useState(false)
@@ -48,47 +76,84 @@ export default function DevModeToggle({ devMode, onToggle }: Props) {
     return () => clearInterval(id)
   }, [devMode, refreshStats])
 
-  // ── Pill appearance ────────────────────────────────────────────────────────
-  const searches = stats ? stats.tavilySearches + stats.ddgSearches : 0
+  const hover = (e: React.MouseEvent<HTMLButtonElement>, on: boolean) =>
+    (e.currentTarget.style.filter = on ? 'brightness(1.2)' : 'brightness(1)')
 
-  let pillBg:    string
-  let pillLabel: string
-  let tooltip:   string
+  // ── Claude mode ─────────────────────────────────────────────────────────────
 
   if (!devMode) {
-    pillBg    = '#2563eb'
-    pillLabel = 'PROD'
-    tooltip   = 'Production — Cloudflare Worker (Claude + Perplexity)\nClick to switch to free DEV mode'
-  } else if (offline) {
-    pillBg    = '#dc2626'
-    pillLabel = '⚠ DEV'
-    tooltip   = 'DEV mode — Cloudflare Worker unreachable\nCheck: dev-proxy.vin-bories.workers.dev/stats\nClick to switch to PROD'
-  } else if (stats) {
-    const reset = formatResetDate(stats.resetDate)
-    pillBg    = '#15803d'
-    pillLabel = 'DEV'
-    tooltip   = `DEV mode — Groq + Tavily (free)\n${searches}/${stats.limit} searches used · resets ${reset}\n${stats.remaining} Tavily remaining\nClick to switch to PROD`
-  } else {
-    pillBg    = '#15803d'
-    pillLabel = 'DEV'
-    tooltip   = 'DEV mode — Groq + Tavily (free)\nClick to switch to PROD'
+    return (
+      <button
+        onClick={() => onToggle(true)}
+        title={'Claude API — high-quality generation\nClick to switch to Free mode'}
+        style={{ ...BASE, background: '#4f46e5' }}
+        onMouseEnter={e => hover(e, true)}
+        onMouseLeave={e => hover(e, false)}
+      >
+        ✦ Claude
+      </button>
+    )
   }
+
+  // ── Free mode — offline ──────────────────────────────────────────────────────
+
+  if (offline) {
+    return (
+      <button
+        onClick={() => onToggle(false)}
+        title={'Free mode — proxy unreachable\nClick to switch to Claude mode'}
+        style={{ ...BASE, background: '#dc2626' }}
+        onMouseEnter={e => hover(e, true)}
+        onMouseLeave={e => hover(e, false)}
+      >
+        ⚠ Offline
+      </button>
+    )
+  }
+
+  // ── Free mode — with stats ───────────────────────────────────────────────────
+
+  const searches = stats ? stats.tavilySearches + stats.ddgSearches : 0
+  const limit    = stats?.limit ?? 1000
+  const pct      = stats ? Math.min(100, Math.round((searches / limit) * 100)) : 0
+  const reset    = stats ? formatResetDate(stats.resetDate) : ''
+
+  // Bar color: green → amber → red as limit approaches
+  const barColor = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#86efac'
+
+  const tooltip = stats
+    ? [
+        'Free mode — Groq (Llama 3.3 70B) + Tavily search',
+        `Searches: ${searches} / ${limit} used (${pct}%) · resets ${reset}`,
+        `Tavily remaining: ${stats.remaining}`,
+        'Click to switch to Claude mode',
+      ].join('\n')
+    : 'Free mode — Groq + Tavily\nLoading usage…\nClick to switch to Claude mode'
 
   return (
     <button
-      onClick={() => onToggle(!devMode)}
+      onClick={() => onToggle(false)}
       title={tooltip}
-      style={{
-        padding: '5px 14px', background: pillBg, border: 'none',
-        borderRadius: 20, color: '#fff', fontSize: 12,
-        fontFamily: 'monospace', fontWeight: 600, letterSpacing: 0.5,
-        cursor: 'pointer', transition: 'filter 0.15s',
-        lineHeight: 1.4,
-      }}
-      onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.2)')}
-      onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
+      style={{ ...BASE, background: '#15803d' }}
+      onMouseEnter={e => hover(e, true)}
+      onMouseLeave={e => hover(e, false)}
     >
-      {pillLabel}
+      <span>Free</span>
+
+      {stats ? (
+        <>
+          <span style={{ opacity: 0.4 }}>·</span>
+          {/* fraction — color shifts as limit approaches */}
+          <span style={{ color: barColor, fontWeight: 700 }}>
+            {searches}
+            <span style={{ opacity: 0.6, fontWeight: 400 }}>/{limit}</span>
+          </span>
+          <span style={{ opacity: 0.8 }}>🔍</span>
+          <UsageBar pct={pct} color={barColor} />
+        </>
+      ) : (
+        <span style={{ opacity: 0.5 }}>···</span>
+      )}
     </button>
   )
 }
