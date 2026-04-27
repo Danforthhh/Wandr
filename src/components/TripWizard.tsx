@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -57,7 +57,7 @@ interface Props {
   onSettingsClick: () => void;
 }
 
-function nanoid() { return Math.random().toString(36).slice(2, 9); }
+function nanoid() { return crypto.randomUUID(); }
 
 function fmtSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -87,6 +87,12 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   const [fileDragOver, setFileDragOver] = useState(false);
   const [fileError, setFileError]       = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mountedRef   = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -124,7 +130,9 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     let runningTotal = contextFiles.reduce((sum, f) => sum + f.size, 0);
     let added = 0;
     arr.slice(0, remaining).forEach(file => {
-      if (!ACCEPTED_TYPES.includes(file.type)) {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      const ACCEPTED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'txt', 'md'];
+      if (!ACCEPTED_TYPES.includes(file.type) || !ACCEPTED_EXTS.includes(ext)) {
         setFileError(`"${file.name}" is not a supported file type.`);
         return;
       }
@@ -139,6 +147,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       runningTotal += file.size;
       const reader = new FileReader();
       reader.onload = e => {
+        if (!mountedRef.current) return;
         const dataUrl = e.target?.result as string;
         const dataBase64 = dataUrl.split(',')[1];
         const entry: TripContextFile = {
@@ -150,6 +159,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
           size: file.size,
         };
         setContextFiles(prev => [...prev, entry]);
+      };
+      reader.onerror = () => {
+        if (!mountedRef.current) return;
+        setFileError(`Failed to read "${file.name}".`);
       };
       reader.readAsDataURL(file);
       added++;

@@ -17,7 +17,7 @@ const STORAGE_KEY = 'wandr_debug_logs';
 let entries: LogEntry[] = [];
 let persistEnabled = false;
 
-type LogListener = (entry: LogEntry) => void;
+type LogListener = (entry: LogEntry | null) => void;
 const listeners = new Set<LogListener>();
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ export function loadPersistedLogs(): void {
 
 // ─── Core ─────────────────────────────────────────────────────────────────────
 
-function nanoid() { return Math.random().toString(36).slice(2, 9); }
+function nanoid() { return crypto.randomUUID(); }
 
 export function setLogListener(fn: LogListener | null) {
   if (fn) listeners.add(fn);
@@ -60,7 +60,7 @@ export function clearLogs() {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }
   // Broadcast a clear sentinel so subscribers can reset their state
-  listeners.forEach(fn => fn(null as unknown as LogEntry));
+  listeners.forEach(fn => fn(null));
 }
 
 function emit(level: LogLevel, category: string, message: string, data?: unknown, elapsed?: number) {
@@ -73,7 +73,12 @@ function emit(level: LogLevel, category: string, message: string, data?: unknown
   entries = [...entries.slice(-(MAX_ENTRIES - 1)), entry];
 
   if (persistEnabled) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch { /* quota */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    } catch {
+      console.warn('[logger] localStorage quota exceeded — disabling log persistence');
+      persistEnabled = false;
+    }
   }
 
   listeners.forEach(fn => fn(entry));

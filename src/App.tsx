@@ -22,7 +22,7 @@ import DebugPanel from './components/DebugPanel';
 import DevModeToggle from './components/DevModeToggle';
 
 function nanoid(): string {
-  return Math.random().toString(36).slice(2, 11);
+  return crypto.randomUUID();
 }
 
 export default function App() {
@@ -48,8 +48,14 @@ export default function App() {
       getEncryptedKey(uid, 'claude').catch(() => null),
       getEncryptedKey(uid, 'perplexity').catch(() => null),
     ]);
-    const cKey = claudeBundle ? await decryptApiKey(claudeBundle, pw).catch(() => null) : null;
-    const pKey = pplxBundle   ? await decryptApiKey(pplxBundle,   pw).catch(() => null) : null;
+    const cKey = claudeBundle ? await decryptApiKey(claudeBundle, pw).catch(() => {
+      console.warn('[loadKeys] Claude key decryption failed — password may be incorrect');
+      return null;
+    }) : null;
+    const pKey = pplxBundle ? await decryptApiKey(pplxBundle, pw).catch(() => {
+      console.warn('[loadKeys] Perplexity key decryption failed — password may be incorrect');
+      return null;
+    }) : null;
     setClaudeKey(cKey);
     setPplxKey(pKey);
     setApiKeys(cKey, pKey);
@@ -149,14 +155,14 @@ export default function App() {
   const handleUpdateTrip = async (updated: Trip) => {
     setTrips(prev => prev.map(t => t.id === updated.id ? updated : t));
     setSelectedTrip(updated);
-    if (user) await saveTrip(user.uid, updated);
+    if (user) saveTrip(user.uid, updated).catch(e => console.error('[handleUpdateTrip] Firestore save failed:', e));
   };
 
   const handleDeleteTrip = async (id: string) => {
     setTrips(prev => prev.filter(t => t.id !== id));
     setView('dashboard');
     setSelectedTrip(null);
-    if (user) await firestoreDeleteTrip(user.uid, id);
+    if (user) firestoreDeleteTrip(user.uid, id).catch(e => console.error('[handleDeleteTrip] Firestore delete failed:', e));
   };
 
   // ── AI generation ──────────────────────────────────────────────────────────

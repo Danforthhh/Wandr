@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 const PROXY_URL = 'https://dev-proxy.vin-bories.workers.dev'
 const POLL_MS   = 5000
@@ -61,19 +61,27 @@ function UsageBar({ pct, color }: { pct: number; color: string }) {
 export default function DevModeToggle({ devMode, onToggle }: Props) {
   const [stats,   setStats]   = useState<ProxyStats | null>(null)
   const [offline, setOffline] = useState(false)
+  const failCount = useRef(0)
 
   const refreshStats = useCallback(async () => {
     if (!devMode) return
     const data = await fetchStats()
-    if (data) { setStats(data); setOffline(false) }
-    else       { setStats(null); setOffline(true) }
+    if (data) { setStats(data); setOffline(false); failCount.current = 0 }
+    else       { setStats(null); setOffline(true);  failCount.current++ }
   }, [devMode])
 
   useEffect(() => {
-    if (!devMode) { setStats(null); setOffline(false); return }
-    refreshStats()
-    const id = setInterval(refreshStats, POLL_MS)
-    return () => clearInterval(id)
+    if (!devMode) { setStats(null); setOffline(false); failCount.current = 0; return }
+    let cancelled = false
+    const tick = async () => {
+      if (cancelled) return
+      await refreshStats()
+      if (cancelled) return
+      const delay = Math.min(POLL_MS * Math.pow(2, failCount.current), 60_000)
+      setTimeout(tick, delay)
+    }
+    tick()
+    return () => { cancelled = true }
   }, [devMode, refreshStats])
 
   const hover = (e: React.MouseEvent<HTMLButtonElement>, on: boolean) =>

@@ -24,7 +24,7 @@ const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf,text/p
 const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
 
 function nanoid() {
-  return Math.random().toString(36).slice(2, 9);
+  return crypto.randomUUID();
 }
 
 async function fileToContextFile(file: File): Promise<TripContextFile | null> {
@@ -43,7 +43,10 @@ async function fileToContextFile(file: File): Promise<TripContextFile | null> {
         size: file.size,
       });
     };
-    reader.onerror = () => resolve(null);
+    reader.onerror = () => {
+      console.warn(`[AIChat] Failed to read file: ${file.name}`);
+      resolve(null);
+    };
     reader.readAsDataURL(file);
   });
 }
@@ -82,8 +85,9 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
   const send = async (text: string) => {
     if ((!text.trim() && attachments.length === 0) || loading) return;
 
+    const sanitizeName = (name: string) => name.replace(/[\x00-\x1f]/g, '').trim();
     const label = attachments.length
-      ? `${text.trim()}${text.trim() ? '\n' : ''}📎 ${attachments.map(a => a.name).join(', ')}`
+      ? `${text.trim()}${text.trim() ? '\n' : ''}📎 ${attachments.map(a => sanitizeName(a.name)).join(', ')}`
       : text.trim();
 
     const userMsg: ChatMessage = {
