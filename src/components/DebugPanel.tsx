@@ -75,7 +75,7 @@ export default function DebugPanel() {
 
   // Subscribe to new log entries
   useEffect(() => {
-    const handler = (entry: LogEntry) => {
+    const handler = (entry: LogEntry | null) => {
       if (!entry) { setEntries([]); return; }   // clearLogs() sends null
       setEntries(getLogs());
     };
