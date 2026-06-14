@@ -1,7 +1,7 @@
 {
   "header": {
     "title": "Nouveau voyage",
-    "step": "Étape {{step}} sur 4"
+    "step": "Étape {{step}} sur 5"
   },
   "step1": {
     "title": "Où allez-vous ?",
@@ -13,23 +13,11 @@
     "destinationPlaceholder": "ex. Tokyo, Japon",
     "duration": "{{days}}j",
     "travelerCount_one": "1 voyageur",
-    "travelerCount_other": "{{count}} voyageurs",
-    "flightTitle": "Connaissez-vous déjà votre vol ?",
-    "flightYes": "Oui",
-    "flightNo": "Non",
-    "flightNumber": "Numéro de vol",
-    "flightDepDate": "Date de départ",
-    "flightDepAirport": "Aéroport de départ",
-    "flightDepTime": "Heure de départ",
-    "flightArrAirport": "Aéroport d'arrivée",
-    "flightArrTime": "Heure d'arrivée",
-    "flightICS": "Télécharger rappel aéroport (3h avant)"
+    "travelerCount_other": "{{count}} voyageurs"
   },
   "step2": {
-    "title": "Quel est votre style ?",
-    "subtitle": "Choisissez vos centres d'intérêt et définissez votre budget total.",
-    "budgetTitle": "Quel est votre budget ?",
-    "budgetSubtitle": "Définissez votre budget total pour ce voyage.",
+    "title": "Quel est votre budget ?",
+    "subtitle": "Définissez votre budget total pour ce voyage.",
     "interests": "Centres d'intérêt",
     "interestsHint": "(cochez tout ce qui s'applique)",
     "budget": "Budget total (tous les voyageurs)",
@@ -49,8 +37,32 @@
     ]
   },
   "step3": {
+    "title": "Données de votre voyage",
+    "subtitle": "Ajoutez votre vol et vos étapes prévues. Ces informations seront intégrées directement dans votre planning.",
+    "skip": "Passer",
+    "flightTitle": "Avez-vous déjà votre vol ?",
+    "flightYes": "Oui",
+    "flightNo": "Non",
+    "flightNumber": "Numéro de vol",
+    "flightDepDate": "Date de départ",
+    "flightDepAirport": "Aéroport de départ",
+    "flightDepTime": "Heure de départ",
+    "flightArrAirport": "Aéroport d'arrivée",
+    "flightArrTime": "Heure d'arrivée",
+    "flightICS": "Télécharger rappel aéroport (3h avant le vol)",
+    "itineraryTitle": "Connais-tu déjà ton itinéraire ?",
+    "itinerarySubtitle": "Ville par ville avec la durée de chaque étape.",
+    "itineraryKnow": "Oui, j'ai un plan",
+    "itineraryAI": "Non, génère pour moi",
+    "addStop": "+ Ajouter une étape",
+    "city": "Ville / Région",
+    "nights": "nuit(s)",
+    "cityPlaceholder": "ex. Hanoï, Sapa, Hô Chi Minh-Ville…",
+    "totalNights": "{{total}} nuit(s) planifiée(s) · voyage de {{days}} jours"
+  },
+  "step4": {
     "title": "Vos incontournables",
-    "subtitle": "Parlez de votre voyage : villes, lieux à ne pas manquer, activités déjà prévues. L'IA les intégrera directement dans votre planning.",
+    "subtitle": "Parlez de votre voyage : lieux à ne pas manquer, activités déjà prévues. L'IA les intégrera directement dans votre planning.",
     "skip": "Passer",
     "voiceLabel": "🎙️ Décrivez votre voyage à voix haute",
     "voiceStart": "Appuyez pour commencer à parler",
@@ -63,7 +75,7 @@
     "fileCount": "{{count}}/{{max}}",
     "dropZone": "Déposez vos fichiers ici ou parcourez",
     "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 Mo chacun",
-    "notesPlaceholder": "ex. \"5 jours à Montréal dont la basilique Notre-Dame et le Vieux-Port, 2 jours dans les Laurentides pour la randonnée, 3 jours à Québec avec les plaines d'Abraham…\"",
+    "notesPlaceholder": "ex. \"La basilique Notre-Dame et le Vieux-Port à Montréal, randonnée dans les Laurentides, plaines d'Abraham à Québec…\"",
     "savedHint": "Sauvegardé avec le voyage — l'IA s'en servira en priorité pour construire votre itinéraire jour par jour."
   },
   "fileErrors": {
@@ -74,22 +86,25 @@
     "tooMany": "Seuls les {{count}} premiers fichiers ont été ajoutés (limite : {{max}}).",
     "readFailed": "Impossible de lire \"{{name}}\"."
   },
-  "step4": {
+  "step5": {
     "title": "Prêt à créer !",
-    "subtitle": "L'IA va générer le nom, la description et les bases de votre itinéraire.",
+    "subtitle": "L'IA va générer votre plan de voyage personnalisé à partir de vos données.",
     "travelers": "Voyageurs",
     "budget": "Budget",
     "interests": "Centres d'intérêt",
+    "flight": "Vol",
+    "itinerary": "Itinéraire prévu",
     "peopleCount_one": "1 personne",
     "peopleCount_other": "{{count}} personnes",
-    "contextAdded": "Contexte ajouté",
+    "contextAdded": "Incontournables ajoutés",
     "filesAttached": "{{count}} fichier(s) : {{names}}",
     "apiWarning": "Une clé API Perplexity ou Claude est requise pour créer des voyages avec l'IA.",
     "setup": "Configurer",
     "error": "Erreur : {{message}}",
     "createFailed": "Impossible de créer le voyage.",
-    "generating": "L'IA prépare votre voyage…",
-    "submit": "Créer le voyage avec l'IA"
+    "generating": "L'IA prépare votre plan de voyage…",
+    "submit": "Créer mon plan de voyage",
+    "nightsUnit": "nuit(s)"
   },
   "nav": {
     "back": "Retour",

@@ -28,6 +28,11 @@ export interface MustDo {
   items: string[];
 }
 
+export interface TripStop {
+  city: string;
+  nights: number;
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -44,6 +49,7 @@ export interface Trip {
   notes?: string;
   mustDos?: MustDo[];
   outboundFlight?: FlightInfo;
+  plannedStops?: TripStop[];
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
   status: TripStatus;

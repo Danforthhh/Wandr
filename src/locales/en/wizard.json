@@ -1,7 +1,7 @@
 {
   "header": {
     "title": "New Trip",
-    "step": "Step {{step}} of 4"
+    "step": "Step {{step}} of 5"
   },
   "step1": {
     "title": "Where are you going?",
@@ -13,23 +13,11 @@
     "destinationPlaceholder": "e.g. Tokyo, Japan",
     "duration": "{{days}}d",
     "travelerCount_one": "1 traveler",
-    "travelerCount_other": "{{count}} travelers",
-    "flightTitle": "Do you already know your flight?",
-    "flightYes": "Yes",
-    "flightNo": "No",
-    "flightNumber": "Flight number",
-    "flightDepDate": "Departure date",
-    "flightDepAirport": "Departure airport",
-    "flightDepTime": "Departure time",
-    "flightArrAirport": "Arrival airport",
-    "flightArrTime": "Arrival time",
-    "flightICS": "Download airport reminder (3h before)"
+    "travelerCount_other": "{{count}} travelers"
   },
   "step2": {
-    "title": "What's your style?",
-    "subtitle": "Pick interests and set your total budget.",
-    "budgetTitle": "What's your budget?",
-    "budgetSubtitle": "Set the total budget for this trip.",
+    "title": "What's your budget?",
+    "subtitle": "Set the total budget for this trip.",
     "interests": "Interests",
     "interestsHint": "(select all that apply)",
     "budget": "Total Budget (all travelers)",
@@ -49,8 +37,32 @@
     ]
   },
   "step3": {
+    "title": "Your trip details",
+    "subtitle": "Add your flight and planned stops. These will be built directly into your schedule.",
+    "skip": "Skip",
+    "flightTitle": "Do you already have your flight?",
+    "flightYes": "Yes",
+    "flightNo": "No",
+    "flightNumber": "Flight number",
+    "flightDepDate": "Departure date",
+    "flightDepAirport": "Departure airport",
+    "flightDepTime": "Departure time",
+    "flightArrAirport": "Arrival airport",
+    "flightArrTime": "Arrival time",
+    "flightICS": "Download airport reminder (3h before departure)",
+    "itineraryTitle": "Do you already have a city-by-city itinerary?",
+    "itinerarySubtitle": "City by city with how long you'll spend at each stop.",
+    "itineraryKnow": "Yes, I have a plan",
+    "itineraryAI": "No, generate one for me",
+    "addStop": "+ Add a stop",
+    "city": "City / Region",
+    "nights": "night(s)",
+    "cityPlaceholder": "e.g. Hanoi, Sapa, Ho Chi Minh City…",
+    "totalNights": "{{total}} night(s) planned across {{days}} days"
+  },
+  "step4": {
     "title": "Your must-dos",
-    "subtitle": "Tell us about your trip: cities, must-see landmarks, activities you've already planned. The AI will work these in as priorities.",
+    "subtitle": "Tell us about landmarks, activities you've already planned. The AI will work these in as priorities.",
     "skip": "Skip",
     "voiceLabel": "🎙️ Describe your trip out loud",
     "voiceStart": "Tap to start speaking",
@@ -63,7 +75,7 @@
     "fileCount": "{{count}}/{{max}}",
     "dropZone": "Drop files here or browse",
     "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 MB each",
-    "notesPlaceholder": "e.g. \"5 days in Montreal including Notre-Dame Basilica and Old Port, 2 days in the Laurentians for hiking, 3 days in Quebec City with the Plains of Abraham…\"",
+    "notesPlaceholder": "e.g. \"Notre-Dame Basilica and Old Port in Montreal, hiking in the Laurentians, Plains of Abraham in Quebec City…\"",
     "savedHint": "Saved with the trip — the AI will prioritise these when building your day-by-day itinerary."
   },
   "fileErrors": {
@@ -74,22 +86,25 @@
     "tooMany": "Only the first {{count}} files were added (limit: {{max}}).",
     "readFailed": "Failed to read \"{{name}}\"."
   },
-  "step4": {
+  "step5": {
     "title": "Ready to create!",
-    "subtitle": "AI will generate your trip name, description, and set up the foundation for your itinerary.",
+    "subtitle": "AI will generate your personalised trip plan from your details.",
     "travelers": "Travelers",
     "budget": "Budget",
     "interests": "Interests",
+    "flight": "Flight",
+    "itinerary": "Planned route",
     "peopleCount_one": "1 person",
     "peopleCount_other": "{{count}} people",
-    "contextAdded": "Context added",
+    "contextAdded": "Must-dos added",
     "filesAttached": "{{count}} file(s): {{names}}",
     "apiWarning": "A Perplexity or Claude API key is required to create trips with AI.",
     "setup": "Set up",
     "error": "Error: {{message}}",
     "createFailed": "Failed to create trip",
-    "generating": "AI is crafting your trip…",
-    "submit": "Create Trip with AI"
+    "generating": "AI is crafting your trip plan…",
+    "submit": "Create my trip plan",
+    "nightsUnit": "night(s)"
   },
   "nav": {
     "back": "Back",

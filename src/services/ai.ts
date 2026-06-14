@@ -368,9 +368,13 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
     ? `OUTBOUND FLIGHT: Flight ${trip.outboundFlight.flightNumber}, departs ${trip.outboundFlight.departureAirport} at ${trip.outboundFlight.departureTime} on ${trip.outboundFlight.departureDate ?? dates[0]}, arrives ${trip.outboundFlight.arrivalAirport} at ${trip.outboundFlight.arrivalTime}. Add this as the first transport activity of Day 1.\n`
     : '';
 
+  const stopsBlock = trip.plannedStops && trip.plannedStops.length > 0
+    ? `PLANNED ROUTE (city by city — follow this structure exactly, correct obvious city name typos):\n${trip.plannedStops.map((s, i) => `  Stop ${i + 1}: ${s.city} — ${s.nights} night(s)`).join('\n')}\n`
+    : '';
+
   const prompt = mustDosBlock
     ? `Create a ${days}-day itinerary for ${trip.destination}.
-${contextLine}${flightLine}Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
+${contextLine}${flightLine}${stopsBlock}Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 
 INCLUDE ONLY THESE USER-SPECIFIED MUST-DO ACTIVITIES — nothing else:
@@ -382,16 +386,17 @@ STRICT RULES:
 - Do NOT add restaurants, sightseeing, or any activity not listed above
 - Distribute activities logically across days based on the city breakdown in context
 - Each day title format: "Jour N — City: Theme" (or "Day N — City: Theme" in English)
+- Correct any obvious city name typos (e.g. "Sapare" → "Sapa", "Barcelone" → "Barcelona")
 
 Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
   {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"sightseeing|activity|transport|accommodation","estimatedCost":0,"lat":0.0000,"lng":0.0000}
 ]}`
-    : `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes || ''}\n\n${flightLine}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
+    : `${contextLine}${flightLine}${stopsBlock}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
 Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 
-Assign each day to the correct city based on context. Include accurate GPS coordinates.
+${stopsBlock ? 'Assign days to cities following the planned route above. ' : 'Assign each day to the correct city based on context. '}Include accurate GPS coordinates. Correct any obvious city name typos.
 
 Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[

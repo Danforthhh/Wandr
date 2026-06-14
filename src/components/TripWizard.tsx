@@ -9,7 +9,6 @@ import {
   Users,
   DollarSign,
   Sparkles,
-  Check,
   Plane,
   Settings,
   X,
@@ -19,7 +18,7 @@ import {
   Mic,
   MicOff,
 } from 'lucide-react';
-import { Trip, TripContext, TripContextFile, FlightInfo } from '../types';
+import { Trip, TripContext, TripContextFile, FlightInfo, TripStop } from '../types';
 
 const INTERESTS_META = [
   { id: 'culture',     emoji: '🏛️' },
@@ -39,8 +38,8 @@ const INTERESTS_META = [
 const BUDGET_PRESETS = [500, 1500, 3000, 5000, 10000];
 
 const MAX_FILES       = 5;
-const MAX_FILE_BYTES  = 4 * 1024 * 1024;  // 4 MB per file
-const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB total — base64 expands ~33%, keeps memory reasonable
+const MAX_FILE_BYTES  = 4 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 10 * 1024 * 1024;
 
 interface CreateParams {
   destination: string;
@@ -52,6 +51,7 @@ interface CreateParams {
   interests: string[];
   context?: TripContext;
   outboundFlight?: FlightInfo;
+  plannedStops?: TripStop[];
 }
 
 interface Props {
@@ -78,31 +78,35 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     label: interestLabels[i] ?? item.id,
   }));
 
-  const [step, setStep]     = useState(1);
+  const [step, setStep]       = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
+  const [error, setError]     = useState('');
 
-  // Step 1
+  // Step 1 — destination & dates
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate]     = useState('');
   const [endDate, setEndDate]         = useState('');
   const [travelers, setTravelers]     = useState(2);
 
-  // Step 1 — optional flight details
-  const [hasFlight, setHasFlight]             = useState(false);
-  const [flightNumber, setFlightNumber]       = useState('');
-  const [depAirport, setDepAirport]           = useState('');
-  const [depDate, setDepDate]                 = useState('');
-  const [depTime, setDepTime]                 = useState('');
-  const [arrAirport, setArrAirport]           = useState('');
-  const [arrTime, setArrTime]                 = useState('');
-
-  // Step 2
+  // Step 2 — budget
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget]       = useState(3000);
   const [currency, setCurrency]   = useState('USD');
 
-  // Step 3 – context
+  // Step 3 — voyage data: flight
+  const [hasFlight, setHasFlight]         = useState(false);
+  const [flightNumber, setFlightNumber]   = useState('');
+  const [depAirport, setDepAirport]       = useState('');
+  const [depDate, setDepDate]             = useState('');
+  const [depTime, setDepTime]             = useState('');
+  const [arrAirport, setArrAirport]       = useState('');
+  const [arrTime, setArrTime]             = useState('');
+
+  // Step 3 — voyage data: city itinerary
+  const [knowsItinerary, setKnowsItinerary] = useState(false);
+  const [plannedStops, setPlannedStops]     = useState<TripStop[]>([{ city: '', nights: 2 }]);
+
+  // Step 4 — context (must-dos)
   const [contextText, setContextText]   = useState('');
   const [contextFiles, setContextFiles] = useState<TripContextFile[]>([]);
   const [fileDragOver, setFileDragOver] = useState(false);
@@ -110,7 +114,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mountedRef   = useRef(true);
 
-  // Voice recording (Web Speech API)
+  // Voice recording
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -201,6 +205,12 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   const toggleInterest = (id: string) =>
     setInterests(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]));
 
+  // City stop helpers
+  const addStop = () => setPlannedStops(prev => [...prev, { city: '', nights: 2 }]);
+  const removeStop = (i: number) => setPlannedStops(prev => prev.filter((_, idx) => idx !== i));
+  const updateStop = (i: number, field: 'city' | 'nights', value: string | number) =>
+    setPlannedStops(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+
   // ── File handling ───────────────────────────────────────────────────────────
 
   const ACCEPTED_TYPES = [
@@ -215,8 +225,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     const remaining = MAX_FILES - contextFiles.length;
     if (remaining <= 0) { setFileError(t('fileErrors.maxFiles', { max: MAX_FILES })); return; }
 
-    // runningTotal accumulates within the batch so multiple large files in one
-    // drop can't each individually pass the 10 MB check against the same baseline
     let runningTotal = contextFiles.reduce((sum, f) => sum + f.size, 0);
     let added = 0;
     arr.slice(0, remaining).forEach(file => {
@@ -275,6 +283,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       text:  contextText.trim() || undefined,
       files: contextFiles.length ? contextFiles : undefined,
     };
+    const validStops = plannedStops.filter(s => s.city.trim() !== '');
     try {
       await onCreate({
         destination, startDate, endDate, travelers, budget, currency, interests,
@@ -284,9 +293,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
           departureDate: depDate || startDate, departureTime: depTime,
           arrivalAirport: arrAirport, arrivalTime: arrTime,
         } : undefined,
+        plannedStops: knowsItinerary && validStops.length > 0 ? validStops : undefined,
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t('step4.createFailed'));
+      setError(e instanceof Error ? e.message : t('step5.createFailed'));
       setLoading(false);
     }
   };
@@ -297,7 +307,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     <div className="min-h-screen flex flex-col bg-gray-950">
       {/* Header */}
       <header className="border-b border-gray-800 relative overflow-hidden">
-        {/* Travel photo background — airplane window view */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80&auto=format&fit=crop')" }}
@@ -314,12 +323,11 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <h1 className="font-semibold text-gray-100">{t('header.title')}</h1>
             <p className="text-xs text-gray-500">{t('header.step', { step })}</p>
           </div>
-          {/* Progress bar */}
           <div className="flex gap-1.5">
-            {[1, 2, 3, 4].map(s => (
+            {[1, 2, 3, 4, 5].map(s => (
               <div
                 key={s}
-                className={`h-1.5 w-8 rounded-full transition-colors duration-300 ${
+                className={`h-1.5 w-7 rounded-full transition-colors duration-300 ${
                   s <= step ? 'bg-indigo-500' : 'bg-gray-800'
                 }`}
               />
@@ -405,109 +413,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 <span className="text-gray-400 text-sm">{t('step1.travelerCount', { count: travelers })}</span>
               </div>
             </div>
-
-            {/* Optional flight details */}
-            <div className="border-t border-gray-800 pt-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-300">✈️ {t('step1.flightTitle')}</span>
-                <div className="flex gap-1.5">
-                  {[false, true].map(val => (
-                    <button
-                      key={String(val)}
-                      type="button"
-                      onClick={() => setHasFlight(val)}
-                      className={`px-3 py-1 text-xs rounded-lg border transition ${
-                        hasFlight === val
-                          ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
-                          : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-600'
-                      }`}
-                    >
-                      {val ? t('step1.flightYes') : t('step1.flightNo')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {hasFlight && (
-                <div className="space-y-3 mt-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightNumber')}</label>
-                      <input
-                        type="text"
-                        value={flightNumber}
-                        onChange={e => setFlightNumber(e.target.value.toUpperCase())}
-                        placeholder="ex. AF350"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepDate')}</label>
-                      <input
-                        type="date"
-                        value={depDate || startDate}
-                        onChange={e => setDepDate(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepAirport')}</label>
-                      <input
-                        type="text"
-                        value={depAirport}
-                        onChange={e => setDepAirport(e.target.value)}
-                        placeholder="ex. CDG — Paris"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepTime')}</label>
-                      <input
-                        type="time"
-                        value={depTime}
-                        onChange={e => setDepTime(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightArrAirport')}</label>
-                      <input
-                        type="text"
-                        value={arrAirport}
-                        onChange={e => setArrAirport(e.target.value)}
-                        placeholder="ex. YUL — Montréal"
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightArrTime')}</label>
-                      <input
-                        type="time"
-                        value={arrTime}
-                        onChange={e => setArrTime(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
-                      />
-                    </div>
-                  </div>
-
-                  {flightComplete && (
-                    <button
-                      type="button"
-                      onClick={downloadICS}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 rounded-xl text-sm text-indigo-300 transition"
-                    >
-                      📅 {t('step1.flightICS')}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -515,8 +420,8 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         {step === 2 && (
           <div className="space-y-7">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step2.budgetTitle')}</h2>
-              <p className="text-gray-400">{t('step2.budgetSubtitle')}</p>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step2.title')}</h2>
+              <p className="text-gray-400">{t('step2.subtitle')}</p>
             </div>
 
             <div>
@@ -563,15 +468,13 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
           </div>
         )}
 
-        {/* ── Step 3: Context (optional) ── */}
+        {/* ── Step 3: Données de voyage (flight + city plan) ── */}
         {step === 3 && (
-          <div className="space-y-6">
+          <div className="space-y-7">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step3.title')}</h2>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  {t('step3.subtitle')}
-                </p>
+                <p className="text-gray-400 text-sm leading-relaxed">{t('step3.subtitle')}</p>
               </div>
               <button
                 onClick={() => setStep(4)}
@@ -581,10 +484,210 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               </button>
             </div>
 
+            {/* Flight section */}
+            <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                  <Plane className="w-4 h-4 text-gray-500" />
+                  {t('step3.flightTitle')}
+                </span>
+                <div className="flex gap-1.5">
+                  {[false, true].map(val => (
+                    <button
+                      key={String(val)}
+                      type="button"
+                      onClick={() => setHasFlight(val)}
+                      className={`px-3 py-1 text-xs rounded-lg border transition ${
+                        hasFlight === val
+                          ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
+                          : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-600'
+                      }`}
+                    >
+                      {val ? t('step3.flightYes') : t('step3.flightNo')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {hasFlight && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightNumber')}</label>
+                      <input
+                        type="text"
+                        value={flightNumber}
+                        onChange={e => setFlightNumber(e.target.value.toUpperCase())}
+                        placeholder="ex. AF350"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightDepDate')}</label>
+                      <input
+                        type="date"
+                        value={depDate || startDate}
+                        onChange={e => setDepDate(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightDepAirport')}</label>
+                      <input
+                        type="text"
+                        value={depAirport}
+                        onChange={e => setDepAirport(e.target.value)}
+                        placeholder="ex. CDG — Paris"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightDepTime')}</label>
+                      <input
+                        type="time"
+                        value={depTime}
+                        onChange={e => setDepTime(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightArrAirport')}</label>
+                      <input
+                        type="text"
+                        value={arrAirport}
+                        onChange={e => setArrAirport(e.target.value)}
+                        placeholder="ex. YUL — Montréal"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step3.flightArrTime')}</label>
+                      <input
+                        type="time"
+                        value={arrTime}
+                        onChange={e => setArrTime(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  {flightComplete && (
+                    <button
+                      type="button"
+                      onClick={downloadICS}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 rounded-xl text-sm text-indigo-300 transition"
+                    >
+                      📅 {t('step3.flightICS')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* City itinerary section */}
+            <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-200 mb-0.5">🗺️ {t('step3.itineraryTitle')}</p>
+                <p className="text-xs text-gray-500">{t('step3.itinerarySubtitle')}</p>
+              </div>
+
+              <div className="flex gap-2">
+                {[false, true].map(val => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => setKnowsItinerary(val)}
+                    className={`flex-1 py-2 text-xs rounded-xl border transition ${
+                      knowsItinerary === val
+                        ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
+                        : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                    }`}
+                  >
+                    {val ? t('step3.itineraryKnow') : t('step3.itineraryAI')}
+                  </button>
+                ))}
+              </div>
+
+              {knowsItinerary && (
+                <div className="space-y-2.5 mt-2">
+                  {plannedStops.map((stop, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={stop.city}
+                        onChange={e => updateStop(idx, 'city', e.target.value)}
+                        placeholder={t('step3.cityPlaceholder')}
+                        className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                      <input
+                        type="number"
+                        value={stop.nights}
+                        min={1}
+                        max={60}
+                        onChange={e => updateStop(idx, 'nights', Math.max(1, Number(e.target.value)))}
+                        className="w-14 bg-gray-900 border border-gray-700 rounded-xl px-2 py-2.5 text-gray-100 text-center text-sm focus:outline-none focus:border-indigo-500 transition"
+                      />
+                      <span className="text-xs text-gray-500 shrink-0 w-10">{t('step3.nights')}</span>
+                      {plannedStops.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeStop(idx)}
+                          className="p-1.5 text-gray-600 hover:text-red-400 transition shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addStop}
+                    className="w-full py-2 border border-dashed border-gray-700 hover:border-indigo-500/60 rounded-xl text-sm text-gray-500 hover:text-indigo-300 transition"
+                  >
+                    {t('step3.addStop')}
+                  </button>
+                  {tripDays && (
+                    <p className="text-xs text-gray-500 text-center pt-1">
+                      {t('step3.totalNights', {
+                        total: plannedStops.reduce((n, s) => n + (s.nights || 0), 0),
+                        days: tripDays,
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 4: Incontournables (must-dos) ── */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step4.title')}</h2>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  {t('step4.subtitle')}
+                </p>
+              </div>
+              <button
+                onClick={() => setStep(5)}
+                className="shrink-0 text-xs text-gray-500 hover:text-gray-300 underline underline-offset-2 mt-1 transition"
+              >
+                {t('step4.skip')}
+              </button>
+            </div>
+
             {/* Voice input */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-4">
-                {t('step3.voiceLabel')}
+                {t('step4.voiceLabel')}
               </label>
 
               {micSupported ? (
@@ -604,7 +707,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                     }
                   </button>
                   <p className="text-xs text-gray-500">
-                    {isRecording ? t('step3.voiceStop') : t('step3.voiceStart')}
+                    {isRecording ? t('step4.voiceStop') : t('step4.voiceStart')}
                   </p>
                   {isRecording && interimText && (
                     <p className="text-sm text-indigo-300 italic text-center px-4 max-w-sm">
@@ -614,15 +717,14 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 </div>
               ) : (
                 <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 mb-4">
-                  {t('step3.voiceUnsupported')}
+                  {t('step4.voiceUnsupported')}
                 </p>
               )}
 
-              {/* Editable text area — populated by voice or direct typing */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm text-gray-400">
-                    {t('step3.voiceOr')}
+                    {t('step4.voiceOr')}
                   </label>
                   {contextText && (
                     <button
@@ -630,7 +732,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                       onClick={() => setContextText('')}
                       className="text-xs text-gray-600 hover:text-gray-400 transition"
                     >
-                      {t('step3.clearText')}
+                      {t('step4.clearText')}
                     </button>
                   )}
                 </div>
@@ -638,11 +740,11 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                   value={contextText}
                   onChange={e => setContextText(e.target.value)}
                   rows={4}
-                  placeholder={t('step3.notesPlaceholder')}
+                  placeholder={t('step4.notesPlaceholder')}
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none text-sm leading-relaxed"
                 />
                 <p className="text-xs text-gray-600 mt-1">
-                  {t('step3.savedHint')}
+                  {t('step4.savedHint')}
                 </p>
               </div>
             </div>
@@ -651,14 +753,13 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-300">
-                  {t('step3.filesLabel')}
+                  {t('step4.filesLabel')}
                   <span className="ml-2 text-xs font-normal text-gray-500">
-                    {t('step3.fileCount', { count: contextFiles.length, max: MAX_FILES })}
+                    {t('step4.fileCount', { count: contextFiles.length, max: MAX_FILES })}
                   </span>
                 </label>
-                </div>
+              </div>
 
-              {/* Drop zone */}
               <div
                 onDragOver={e => { e.preventDefault(); setFileDragOver(true); }}
                 onDragLeave={() => setFileDragOver(false)}
@@ -687,10 +788,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 />
                 <Upload className="w-6 h-6 text-gray-500" />
                 <p className="text-sm text-gray-400 text-center">
-                  {t('step3.dropZone')}
+                  {t('step4.dropZone')}
                 </p>
                 <p className="text-xs text-gray-600 text-center">
-                  {t('step3.fileTypes')}
+                  {t('step4.fileTypes')}
                 </p>
               </div>
 
@@ -698,12 +799,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 <p className="text-xs text-red-400 mt-2">{fileError}</p>
               )}
 
-              {/* File previews */}
               {contextFiles.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {contextFiles.map(f => (
                     f.previewUrl ? (
-                      /* Image thumbnail */
                       <div key={f.id} className="relative group">
                         <img
                           src={f.previewUrl}
@@ -719,7 +818,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                         <p className="text-[10px] text-gray-500 mt-1 truncate w-20 text-center">{fmtSize(f.size)}</p>
                       </div>
                     ) : (
-                      /* Document chip */
                       <div key={f.id} className="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 max-w-[220px]">
                         {f.mimeType === 'application/pdf'
                           ? <FileText className="w-4 h-4 text-red-400 shrink-0" />
@@ -739,19 +837,17 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                   ))}
                 </div>
               )}
-
-              {/* API key note for images/PDFs */}
             </div>
           </div>
         )}
 
-        {/* ── Step 4: Review & Create ── */}
-        {step === 4 && (
+        {/* ── Step 5: Review & Create ── */}
+        {step === 5 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step4.title')}</h2>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step5.title')}</h2>
               <p className="text-gray-400">
-                {t('step4.subtitle')}
+                {t('step5.subtitle')}
               </p>
             </div>
 
@@ -773,19 +869,45 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-800/60 rounded-xl p-3">
-                  <p className="text-gray-500 text-xs mb-1">{t('step4.travelers')}</p>
-                  <p className="font-medium text-gray-200">{t('step4.peopleCount', { count: travelers })}</p>
+                  <p className="text-gray-500 text-xs mb-1">{t('step5.travelers')}</p>
+                  <p className="font-medium text-gray-200">{t('step5.peopleCount', { count: travelers })}</p>
                 </div>
                 <div className="bg-gray-800/60 rounded-xl p-3">
-                  <p className="text-gray-500 text-xs mb-1">{t('step4.budget')}</p>
+                  <p className="text-gray-500 text-xs mb-1">{t('step5.budget')}</p>
                   <p className="font-medium text-gray-200">{currency} {budget.toLocaleString()}</p>
                 </div>
               </div>
 
-              {/* Context summary */}
+              {/* Flight summary */}
+              {hasFlight && flightComplete && (
+                <div className="border-t border-gray-800 pt-4">
+                  <p className="text-xs text-gray-500 mb-2">✈️ {t('step5.flight')}</p>
+                  <div className="bg-gray-800/60 rounded-xl p-3">
+                    <p className="font-medium text-gray-200 text-sm">{flightNumber} · {depAirport} → {arrAirport}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{depDate || startDate} · {depTime} → {arrTime}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Planned itinerary summary */}
+              {knowsItinerary && plannedStops.filter(s => s.city.trim()).length > 0 && (
+                <div className="border-t border-gray-800 pt-4">
+                  <p className="text-xs text-gray-500 mb-2">🗺️ {t('step5.itinerary')}</p>
+                  <div className="space-y-1.5">
+                    {plannedStops.filter(s => s.city.trim()).map((s, i) => (
+                      <div key={i} className="flex items-center justify-between bg-gray-800/60 rounded-lg px-3 py-2">
+                        <span className="text-sm text-gray-200">{s.city}</span>
+                        <span className="text-xs text-gray-500">{s.nights} {t('step5.nightsUnit')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Must-dos / context summary */}
               {(contextText || contextFiles.length > 0) && (
                 <div className="border-t border-gray-800 pt-4">
-                  <p className="text-xs text-gray-500 mb-2">{t('step4.contextAdded')}</p>
+                  <p className="text-xs text-gray-500 mb-2">{t('step5.contextAdded')}</p>
                   <div className="space-y-1.5">
                     {contextText && (
                       <p className="text-xs text-gray-400 bg-gray-800/60 rounded-lg px-3 py-2 line-clamp-2">
@@ -794,7 +916,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                     )}
                     {contextFiles.length > 0 && (
                       <p className="text-xs text-gray-400 bg-gray-800/60 rounded-lg px-3 py-2">
-                        📎 {t('step4.filesAttached', { count: contextFiles.length, names: contextFiles.map(f => f.name).join(', ') })}
+                        📎 {t('step5.filesAttached', { count: contextFiles.length, names: contextFiles.map(f => f.name).join(', ') })}
                       </p>
                     )}
                   </div>
@@ -806,21 +928,21 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             {!hasAiKey && (
               <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
                 <p className="text-sm text-amber-300">
-                  {t('step4.apiWarning')}
+                  {t('step5.apiWarning')}
                 </p>
                 <button
                   onClick={onSettingsClick}
                   className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition"
                 >
                   <Settings className="w-3.5 h-3.5" />
-                  {t('step4.setup')}
+                  {t('step5.setup')}
                 </button>
               </div>
             )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-300">
-                {t('step4.error', { message: error })}
+                {t('step5.error', { message: error })}
               </div>
             )}
 
@@ -832,20 +954,20 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {t('step4.generating')}
+                  {t('step5.generating')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5" />
-                  {t('step4.submit')}
+                  {t('step5.submit')}
                 </>
               )}
             </button>
           </div>
         )}
 
-        {/* Next / Back nav (steps 1–3) */}
-        {step < 4 && (
+        {/* Next / Back nav (steps 1–4) */}
+        {step < 5 && (
           <div className="flex justify-between mt-10">
             {step > 1 ? (
               <button
@@ -863,7 +985,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               disabled={step === 1 ? !canNext1 : step === 2 ? !canNext2 : false}
               className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium transition"
             >
-              {step === 3 ? t('nav.review') : t('nav.next')}
+              {step === 4 ? t('nav.review') : t('nav.next')}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
