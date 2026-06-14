@@ -104,7 +104,11 @@
       "addToDay": "Add to itinerary",
       "cancel": "Cancel",
       "failed": "Could not parse the voice command. Please try again.",
-      "unsupported": "Microphone not available — use Chrome or Edge."
+      "unsupported": "Microphone not available — use Chrome or Edge.",
+      "whichDay": "Which day?",
+      "similarFound": "Similar activity found",
+      "enrichExisting": "Update this activity",
+      "addSeparate": "Add as separate activity"
     },
     "categories": {
       "accommodation": "Accommodation",

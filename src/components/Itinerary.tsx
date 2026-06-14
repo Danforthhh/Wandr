@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay, TripDocument } from '../types';
-import { parseVoiceActivity } from '../services/ai';
+import { parseVoiceActivity, VoiceParseResult } from '../services/ai';
 
 const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free', 'reservation'] as const;
 
@@ -212,7 +212,9 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceInterim, setVoiceInterim] = useState('');
   const [voiceParsing, setVoiceParsing] = useState(false);
-  const [voiceParsed, setVoiceParsed]   = useState<{ dayDate: string; activity: Partial<Activity> } | null>(null);
+  const [voiceParsed, setVoiceParsed]   = useState<VoiceParseResult | null>(null);
+  const [voiceCandidates, setVoiceCandidates] = useState<string[]>([]);
+  const [voiceMergeTarget, setVoiceMergeTarget] = useState<Activity | null>(null);
   const [voiceError, setVoiceError]     = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -261,6 +263,23 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     recognitionRef.current?.stop();
   }, []);
 
+  // Client-side similarity: ≥2 significant words overlap, or same category within 90 min
+  const findSimilarActivity = (dayDate: string, candidate: Partial<Activity>): Activity | null => {
+    const dayActivities = trip.itinerary.find(d => d.date === dayDate)?.activities ?? [];
+    const stopWords = new Set(['le', 'la', 'les', 'de', 'du', 'au', 'à', 'un', 'une', 'the', 'a', 'an', 'at', 'in', 'to']);
+    const words = (s: string) => s.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+    const newWords = words(candidate.title ?? '');
+    for (const act of dayActivities) {
+      const common = words(act.title).filter(w => newWords.includes(w));
+      if (common.length >= 2) return act;
+      if (act.category === candidate.category && act.time && candidate.time) {
+        const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        if (Math.abs(toMin(act.time) - toMin(candidate.time)) <= 90) return act;
+      }
+    }
+    return null;
+  };
+
   const handleVoiceParse = async () => {
     const text = (voiceTranscript + ' ' + voiceInterim).trim();
     if (!text) return;
@@ -269,10 +288,14 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     setVoiceError('');
     try {
       const result = await parseVoiceActivity(text, trip);
-      if (result) {
+      if (!result) { setVoiceError(t('itinerary.voice.failed')); return; }
+      if (result.candidateDates) {
         setVoiceParsed(result);
+        setVoiceCandidates(result.candidateDates);
       } else {
-        setVoiceError(t('itinerary.voice.failed'));
+        const similar = findSimilarActivity(result.dayDate, result.activity);
+        setVoiceMergeTarget(similar);
+        setVoiceParsed(result);
       }
     } catch {
       setVoiceError(t('itinerary.voice.failed'));
@@ -281,19 +304,27 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     }
   };
 
-  const confirmVoiceActivity = () => {
+  const selectCandidateDate = (date: string) => {
     if (!voiceParsed) return;
-    const { dayDate, activity } = voiceParsed;
+    const resolved = { dayDate: date, activity: voiceParsed.activity };
+    const similar = findSimilarActivity(date, voiceParsed.activity);
+    setVoiceCandidates([]);
+    setVoiceMergeTarget(similar);
+    setVoiceParsed(resolved as typeof voiceParsed);
+  };
+
+  const insertVoiceActivity = (dayDate: string, activity: Partial<Activity>) => {
     const targetDay = trip.itinerary.find(d => d.date === dayDate);
     if (!targetDay) return;
-    const newId = nanoid();
     const newActivity: Activity = {
-      id: newId,
+      id: nanoid(),
       time: activity.time ?? '12:00',
       title: activity.title ?? '',
       description: activity.description ?? '',
       category: activity.category ?? 'activity',
       estimatedCost: activity.estimatedCost ?? 0,
+      reminders: activity.reminders,
+      duration: activity.duration,
     };
     onUpdate({
       ...trip,
@@ -303,10 +334,36 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
           : d
       ),
     });
-    // Switch to that day
     const dayIdx = trip.itinerary.findIndex(d => d.date === dayDate);
     if (dayIdx >= 0) setSelectedDay(dayIdx);
     resetVoice();
+  };
+
+  const mergeVoiceActivity = (dayDate: string, existing: Activity, incoming: Partial<Activity>) => {
+    const merged: Activity = {
+      ...existing,
+      description: (incoming.description && incoming.description.length > existing.description.length)
+        ? incoming.description : existing.description,
+      reminders: [...(existing.reminders ?? []), ...(incoming.reminders ?? [])].filter((r, i, arr) => arr.indexOf(r) === i),
+      duration: incoming.duration ?? existing.duration,
+      time: incoming.time ?? existing.time,
+    };
+    onUpdate({
+      ...trip,
+      itinerary: trip.itinerary.map(d =>
+        d.date === dayDate
+          ? { ...d, activities: d.activities.map(a => a.id === existing.id ? merged : a).sort((a, b) => a.time.localeCompare(b.time)) }
+          : d
+      ),
+    });
+    const dayIdx = trip.itinerary.findIndex(d => d.date === dayDate);
+    if (dayIdx >= 0) setSelectedDay(dayIdx);
+    resetVoice();
+  };
+
+  const confirmVoiceActivity = () => {
+    if (!voiceParsed || !voiceParsed.dayDate) return;
+    insertVoiceActivity(voiceParsed.dayDate, voiceParsed.activity);
   };
 
   const resetVoice = () => {
@@ -315,6 +372,8 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     setVoiceTranscript('');
     setVoiceInterim('');
     setVoiceParsed(null);
+    setVoiceCandidates([]);
+    setVoiceMergeTarget(null);
     setVoiceError('');
     setVoiceParsing(false);
   };
@@ -429,8 +488,66 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
         </button>
       ) : (
         <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-5 space-y-4">
-          {voiceParsed ? (
-            /* ── Preview ── */
+          {voiceCandidates.length > 0 && voiceParsed ? (
+            /* ── Step 1: Date disambiguation ── */
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-amber-400 uppercase tracking-wide">
+                {t('itinerary.voice.whichDay')}
+              </p>
+              <p className="text-sm text-gray-300 font-medium">"{voiceParsed.activity.title}"</p>
+              <div className="flex flex-col gap-2">
+                {voiceCandidates.map(date => {
+                  const d = new Date(date + 'T12:00:00');
+                  const label = d.toLocaleDateString(i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+                  const dayEntry = trip.itinerary.find(it => it.date === date);
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => selectCandidateDate(date)}
+                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-800 hover:bg-indigo-500/20 hover:border-indigo-500/50 border border-gray-700 rounded-xl text-left transition"
+                    >
+                      <span className="text-sm font-medium text-gray-200 capitalize">{label}</span>
+                      {dayEntry && <span className="text-xs text-gray-500 truncate ml-2">{dayEntry.title}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={resetVoice} className="text-xs text-gray-500 hover:text-gray-300 transition">
+                {t('itinerary.voice.cancel')}
+              </button>
+            </div>
+          ) : voiceParsed && voiceMergeTarget ? (
+            /* ── Step 2: Merge or add ── */
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-amber-400 uppercase tracking-wide">
+                {t('itinerary.voice.similarFound')}
+              </p>
+              <div className="bg-gray-800 rounded-xl p-3 text-sm text-gray-300">
+                <p className="font-semibold text-gray-100 mb-0.5">{voiceMergeTarget.title}</p>
+                <p className="text-xs text-gray-500">{voiceMergeTarget.time} · {t(`itinerary.categories.${voiceMergeTarget.category}`)}</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => mergeVoiceActivity(voiceParsed.dayDate!, voiceMergeTarget, voiceParsed.activity)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-xl text-sm font-medium text-amber-300 transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('itinerary.voice.enrichExisting')}
+                </button>
+                <button
+                  onClick={confirmVoiceActivity}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('itinerary.voice.addSeparate')}
+                </button>
+              </div>
+              <button onClick={resetVoice} className="text-xs text-gray-500 hover:text-gray-300 transition w-full text-center">
+                {t('itinerary.voice.cancel')}
+              </button>
+            </div>
+          ) : voiceParsed ? (
+            /* ── Step 3: Preview & confirm ── */
             <div className="space-y-3">
               <p className="text-xs font-medium text-indigo-400 uppercase tracking-wide">
                 {t('itinerary.voice.preview')}

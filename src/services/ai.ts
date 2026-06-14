@@ -551,10 +551,14 @@ export async function searchTravel(query: string, trip: Trip): Promise<string> {
 
 // ─── Voice → Activity ─────────────────────────────────────────────────────────
 
+export type VoiceParseResult =
+  | { dayDate: string; candidateDates?: never; activity: Partial<Activity> }
+  | { dayDate?: never; candidateDates: string[]; activity: Partial<Activity> };
+
 export async function parseVoiceActivity(
   transcript: string,
   trip: Trip,
-): Promise<{ dayDate: string; activity: Partial<Activity> } | null> {
+): Promise<VoiceParseResult | null> {
   if (!transcript.trim()) return null;
 
   const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
@@ -579,30 +583,47 @@ ${datesContext}
 Voice input: "${transcript}"
 
 Parse this voice statement into a calendar activity. Rules:
-- Match "mardi 23", "le 23", "jour 3", "day 1" to the closest date from the itinerary
 - "vol", "flight", "avion", "départ" → category: transport
 - "restaurant", "dîner", "déjeuner", "lunch", "dinner" → category: food
 - "réservé", "réservation", "booked" → category: reservation
 - "hôtel", "hébergement", "check-in", "check-out" → category: accommodation
 - "visite", "musée", "monument", "temple", "pagode" → category: sightseeing
 - Correct any place name typos (e.g. "Foucoque" → "Phố Cổ", "Sapare" → "Sapa")
-- If day is unclear, use ${fallbackDate}
 
-Return ONLY this JSON (no markdown):
-{"dayDate":"YYYY-MM-DD","activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}`;
+DAY MATCHING RULES (critical):
+- If the user mentions a specific date ("le 23", "June 23") or "jour 3" / "day 2" → resolve directly to dayDate
+- If the user mentions only a weekday ("mardi", "Tuesday", "lundi") AND exactly ONE trip day has that weekday → use dayDate
+- If the user mentions only a weekday AND MULTIPLE trip days share that weekday → return candidateDates (array of all matching YYYY-MM-DD), NOT dayDate
+- If day is completely unclear → use dayDate: "${fallbackDate}"
+
+Return ONLY one of these two JSON shapes (no markdown):
+Shape A (day is certain): {"dayDate":"YYYY-MM-DD","activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}
+Shape B (weekday ambiguous): {"candidateDates":["YYYY-MM-DD","YYYY-MM-DD"],"activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}`;
 
   try {
     const text = await callGeneration(
       prompt,
       `You are a travel assistant parsing voice commands into calendar events. Return ONLY valid JSON.${langInstruction}`,
       undefined,
-      { maxTokens: 300 }
+      { maxTokens: 350 }
     );
-    const result = parseJSON<{ dayDate: string; activity: Partial<Activity> }>(text);
-    if (!result?.dayDate || !result?.activity?.title) return null;
+    const result = parseJSON<{ dayDate?: string; candidateDates?: string[]; activity: Partial<Activity> }>(text);
+    if (!result?.activity?.title) return null;
+
     const validDates = trip.itinerary.map(d => d.date);
-    const snapped = validDates.includes(result.dayDate) ? result.dayDate : fallbackDate;
-    return { dayDate: snapped, activity: result.activity };
+
+    if (result.candidateDates && result.candidateDates.length > 1) {
+      const valid = result.candidateDates.filter(d => validDates.includes(d));
+      if (valid.length > 1) return { candidateDates: valid, activity: result.activity };
+      if (valid.length === 1) return { dayDate: valid[0], activity: result.activity };
+    }
+
+    if (result.dayDate) {
+      const snapped = validDates.includes(result.dayDate) ? result.dayDate : fallbackDate;
+      return { dayDate: snapped, activity: result.activity };
+    }
+
+    return { dayDate: fallbackDate, activity: result.activity };
   } catch {
     return null;
   }

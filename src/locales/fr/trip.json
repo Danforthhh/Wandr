@@ -104,7 +104,11 @@
       "addToDay": "Ajouter à l'itinéraire",
       "cancel": "Annuler",
       "failed": "Impossible d'analyser la commande vocale. Réessayez.",
-      "unsupported": "Microphone non disponible — utilisez Chrome ou Edge."
+      "unsupported": "Microphone non disponible — utilisez Chrome ou Edge.",
+      "whichDay": "Quel jour ?",
+      "similarFound": "Activité similaire détectée",
+      "enrichExisting": "Enrichir cette activité",
+      "addSeparate": "Ajouter comme nouvelle activité"
     },
     "categories": {
       "accommodation": "Hébergement",
