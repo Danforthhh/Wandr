@@ -210,8 +210,14 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
+      <header className="border-b border-gray-800 relative overflow-hidden">
+        {/* Travel photo background — airplane window view */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80&auto=format&fit=crop')" }}
+        />
+        <div className="absolute inset-0 bg-gray-950/88" />
+        <div className="relative max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={onBack}
             className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"

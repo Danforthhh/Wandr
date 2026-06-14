@@ -62,7 +62,6 @@ export default function TripDetail({
 
   const cycleStatus = () => onUpdateTrip({ ...trip, status: STATUS_CYCLE[trip.status] });
 
-  const activityCount     = trip.itinerary.reduce((n, d) => n + (d.activities?.length ?? 0), 0);
   const packedCount       = trip.packingList.filter(i => i.packed).length;
   const totalEstPerPerson = trip.itinerary.flatMap(d => d.activities ?? []).reduce((s, a) => s + (a.estimatedCost || 0), 0);
   const totalEst          = totalEstPerPerson * trip.travelers;
@@ -182,22 +181,11 @@ export default function TripDetail({
             </div>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: t('overview.stats.days'),        value: days,                  suffix: '' },
-                { label: t('overview.stats.activities'),  value: activityCount || '—',  suffix: '' },
-                { label: t('overview.stats.itemsPacked'), value: packedCount || '—',
-                  suffix: trip.packingList.length > 0 ? `/${trip.packingList.length}` : '' },
-                { label: t('overview.stats.interests'),   value: trip.interests.length, suffix: '' },
-              ].map(({ label, value, suffix }) => (
-                <div key={label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5 text-center">
-                  <p className="text-xl md:text-2xl font-bold text-indigo-400">
-                    {value}
-                    {suffix && <span className="text-sm text-gray-500">{suffix}</span>}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">{label}</p>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5 text-center">
+                <p className="text-xl md:text-2xl font-bold text-indigo-400">{days}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('overview.stats.days')}</p>
+              </div>
             </div>
 
             {/* Provisional budget */}
@@ -237,18 +225,6 @@ export default function TripDetail({
                   ? t('overview.budget.hint')
                   : t('overview.budget.perPerson', { currency: trip.currency, amount: totalEstPerPerson.toLocaleString(), count: trip.travelers })}
               </p>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 md:p-6">
-              <h3 className="font-semibold text-gray-200 mb-3">{t('overview.stats.interests')}</h3>
-              <div className="flex flex-wrap gap-2">
-                {trip.interests.map(id => (
-                  <span key={id}
-                    className="text-sm bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 px-3 py-1 rounded-full">
-                    {id}
-                  </span>
-                ))}
-              </div>
             </div>
 
             {/* Quick-action cards */}
