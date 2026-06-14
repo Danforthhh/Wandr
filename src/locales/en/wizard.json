@@ -39,16 +39,22 @@
     ]
   },
   "step3": {
-    "title": "Anything to add?",
-    "subtitle": "Give the AI extra context for a more personalised trip. Fully optional.",
+    "title": "Your must-dos",
+    "subtitle": "Tell us about your trip: cities, must-see landmarks, activities you've already planned. The AI will work these in as priorities.",
     "skip": "Skip",
+    "voiceLabel": "🎙️ Describe your trip out loud",
+    "voiceStart": "Tap to start speaking",
+    "voiceStop": "Tap to stop recording",
+    "voiceUnsupported": "Microphone not available in this browser — type directly instead (works on Chrome and Edge).",
+    "voiceOr": "Or type your must-dos",
+    "clearText": "Clear",
     "notesLabel": "📝 Notes",
     "filesLabel": "📎 Files & Images",
     "fileCount": "{{count}}/{{max}}",
     "dropZone": "Drop files here or browse",
     "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 MB each",
-    "notesPlaceholder": "e.g. \"I'm celebrating my anniversary, I have a hotel booked near the Eiffel Tower, I'm vegetarian, I can't do early mornings…\"",
-    "savedHint": "Saved with the trip — used by AI whenever you generate the itinerary or packing list."
+    "notesPlaceholder": "e.g. \"5 days in Montreal including Notre-Dame Basilica and Old Port, 2 days in the Laurentians for hiking, 3 days in Quebec City with the Plains of Abraham…\"",
+    "savedHint": "Saved with the trip — the AI will prioritise these when building your day-by-day itinerary."
   },
   "fileErrors": {
     "maxFiles": "Maximum {{max}} files.",

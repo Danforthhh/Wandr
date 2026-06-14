@@ -16,6 +16,8 @@ import {
   FileText,
   Image,
   Upload,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { Trip, TripContext, TripContextFile } from '../types';
 
@@ -67,7 +69,7 @@ function fmtSize(bytes: number) {
 }
 
 export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick }: Props) {
-  const { t } = useTranslation('wizard');
+  const { t, i18n } = useTranslation('wizard');
 
   const interestLabels = t('step2.interestList', { returnObjects: true }) as string[];
   const INTERESTS = INTERESTS_META.map((item, i) => ({
@@ -97,6 +99,47 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   const [fileError, setFileError]       = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mountedRef   = useRef(true);
+
+  // Voice recording (Web Speech API)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [interimText, setInterimText] = useState('');
+  const micSupported = typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  const startRecording = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec: any = new SR();
+    rec.lang = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const word = e.results[i][0].transcript.trim();
+          setContextText(prev => prev ? prev + ' ' + word : word);
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      setInterimText(interim);
+    };
+    rec.onend = () => { setIsRecording(false); setInterimText(''); recognitionRef.current = null; };
+    rec.onerror = () => { setIsRecording(false); setInterimText(''); recognitionRef.current = null; };
+    recognitionRef.current = rec;
+    rec.start();
+    setIsRecording(true);
+  }, [i18n.language]);
+
+  const stopRecording = useCallback(() => {
+    recognitionRef.current?.stop();
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -392,21 +435,70 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               </button>
             </div>
 
-            {/* Notes */}
+            {/* Voice input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                {t('step3.notesLabel')}
+              <label className="block text-sm font-medium text-gray-300 mb-4">
+                {t('step3.voiceLabel')}
               </label>
-              <textarea
-                value={contextText}
-                onChange={e => setContextText(e.target.value)}
-                rows={4}
-                placeholder={t('step3.notesPlaceholder')}
-                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none text-sm leading-relaxed"
-              />
-              <p className="text-xs text-gray-600 mt-1">
-                {t('step3.savedHint')}
-              </p>
+
+              {micSupported ? (
+                <div className="flex flex-col items-center gap-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
+                      isRecording
+                        ? 'bg-red-500/20 border-2 border-red-500 text-red-400 shadow-red-900/30 scale-105'
+                        : 'bg-indigo-500/15 border-2 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/25 hover:scale-105 shadow-indigo-900/20'
+                    }`}
+                  >
+                    {isRecording
+                      ? <MicOff className="w-8 h-8" />
+                      : <Mic className="w-8 h-8" />
+                    }
+                  </button>
+                  <p className="text-xs text-gray-500">
+                    {isRecording ? t('step3.voiceStop') : t('step3.voiceStart')}
+                  </p>
+                  {isRecording && interimText && (
+                    <p className="text-sm text-indigo-300 italic text-center px-4 max-w-sm">
+                      {interimText}…
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 mb-4">
+                  {t('step3.voiceUnsupported')}
+                </p>
+              )}
+
+              {/* Editable text area — populated by voice or direct typing */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-gray-400">
+                    {t('step3.voiceOr')}
+                  </label>
+                  {contextText && (
+                    <button
+                      type="button"
+                      onClick={() => setContextText('')}
+                      className="text-xs text-gray-600 hover:text-gray-400 transition"
+                    >
+                      {t('step3.clearText')}
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={contextText}
+                  onChange={e => setContextText(e.target.value)}
+                  rows={4}
+                  placeholder={t('step3.notesPlaceholder')}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none text-sm leading-relaxed"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  {t('step3.savedHint')}
+                </p>
+              </div>
             </div>
 
             {/* File / image upload */}

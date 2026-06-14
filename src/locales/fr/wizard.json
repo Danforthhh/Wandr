@@ -39,16 +39,22 @@
     ]
   },
   "step3": {
-    "title": "Quelque chose à ajouter ?",
-    "subtitle": "Donnez à l'IA du contexte supplémentaire pour un voyage plus personnalisé. Totalement optionnel.",
+    "title": "Vos incontournables",
+    "subtitle": "Parlez de votre voyage : villes, lieux à ne pas manquer, activités déjà prévues. L'IA les intégrera directement dans votre planning.",
     "skip": "Passer",
+    "voiceLabel": "🎙️ Décrivez votre voyage à voix haute",
+    "voiceStart": "Appuyez pour commencer à parler",
+    "voiceStop": "Appuyez pour arrêter l'enregistrement",
+    "voiceUnsupported": "Microphone non disponible dans ce navigateur — saisissez directement (fonctionne sur Chrome et Edge).",
+    "voiceOr": "Ou saisissez vos incontournables",
+    "clearText": "Effacer",
     "notesLabel": "📝 Notes",
     "filesLabel": "📎 Fichiers & Images",
     "fileCount": "{{count}}/{{max}}",
     "dropZone": "Déposez vos fichiers ici ou parcourez",
     "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 Mo chacun",
-    "notesPlaceholder": "ex. \"Je fête mon anniversaire de mariage, j'ai un hôtel réservé près de la Tour Eiffel, je suis végétarien, je ne peux pas commencer tôt le matin…\"",
-    "savedHint": "Sauvegardé avec le voyage — utilisé par l'IA à chaque génération d'itinéraire ou de liste de voyage."
+    "notesPlaceholder": "ex. \"5 jours à Montréal dont la basilique Notre-Dame et le Vieux-Port, 2 jours dans les Laurentides pour la randonnée, 3 jours à Québec avec les plaines d'Abraham…\"",
+    "savedHint": "Sauvegardé avec le voyage — l'IA s'en servira en priorité pour construire votre itinéraire jour par jour."
   },
   "fileErrors": {
     "maxFiles": "Maximum {{max}} fichiers.",
