@@ -14,6 +14,15 @@ export interface TripContext {
   files?: TripContextFile[];
 }
 
+export interface FlightInfo {
+  flightNumber: string;
+  departureAirport: string;
+  departureDate: string;  // YYYY-MM-DD (may differ from startDate)
+  departureTime: string;  // HH:MM local
+  arrivalAirport: string;
+  arrivalTime: string;    // HH:MM local at destination
+}
+
 export interface MustDo {
   city: string;
   items: string[];
@@ -34,6 +43,7 @@ export interface Trip {
   description: string;
   notes?: string;
   mustDos?: MustDo[];
+  outboundFlight?: FlightInfo;
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
   status: TripStatus;

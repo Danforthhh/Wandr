@@ -13,7 +13,17 @@
     "destinationPlaceholder": "e.g. Tokyo, Japan",
     "duration": "{{days}}d",
     "travelerCount_one": "1 traveler",
-    "travelerCount_other": "{{count}} travelers"
+    "travelerCount_other": "{{count}} travelers",
+    "flightTitle": "Do you already know your flight?",
+    "flightYes": "Yes",
+    "flightNo": "No",
+    "flightNumber": "Flight number",
+    "flightDepDate": "Departure date",
+    "flightDepAirport": "Departure airport",
+    "flightDepTime": "Departure time",
+    "flightArrAirport": "Arrival airport",
+    "flightArrTime": "Arrival time",
+    "flightICS": "Download airport reminder (3h before)"
   },
   "step2": {
     "title": "What's your style?",

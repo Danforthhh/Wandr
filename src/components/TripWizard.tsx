@@ -19,7 +19,7 @@ import {
   Mic,
   MicOff,
 } from 'lucide-react';
-import { Trip, TripContext, TripContextFile } from '../types';
+import { Trip, TripContext, TripContextFile, FlightInfo } from '../types';
 
 const INTERESTS_META = [
   { id: 'culture',     emoji: '🏛️' },
@@ -51,6 +51,7 @@ interface CreateParams {
   currency: string;
   interests: string[];
   context?: TripContext;
+  outboundFlight?: FlightInfo;
 }
 
 interface Props {
@@ -86,6 +87,15 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   const [startDate, setStartDate]     = useState('');
   const [endDate, setEndDate]         = useState('');
   const [travelers, setTravelers]     = useState(2);
+
+  // Step 1 — optional flight details
+  const [hasFlight, setHasFlight]             = useState(false);
+  const [flightNumber, setFlightNumber]       = useState('');
+  const [depAirport, setDepAirport]           = useState('');
+  const [depDate, setDepDate]                 = useState('');
+  const [depTime, setDepTime]                 = useState('');
+  const [arrAirport, setArrAirport]           = useState('');
+  const [arrTime, setArrTime]                 = useState('');
 
   // Step 2
   const [interests, setInterests] = useState<string[]>([]);
@@ -147,6 +157,34 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
+
+  // ICS calendar file — 3h airport reminder
+  const downloadICS = useCallback(() => {
+    const date = depDate || startDate;
+    if (!date || !depTime) return;
+    const dep = new Date(`${date}T${depTime}:00`);
+    const reminder = new Date(dep.getTime() - 3 * 60 * 60 * 1000);
+    const fmt = (d: Date) => {
+      const p = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
+    };
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Wandr//EN',
+      'BEGIN:VEVENT',
+      `DTSTART:${fmt(reminder)}`,
+      `DTEND:${fmt(dep)}`,
+      `SUMMARY:✈️ Départ aéroport — Vol ${flightNumber}`,
+      `DESCRIPTION:Vol ${flightNumber}\\nDépart: ${depAirport} à ${depTime}\\nArrivée: ${arrAirport} à ${arrTime}\\n\\nPrévoyez 3h avant le vol pour les formalités.`,
+      'END:VEVENT', 'END:VCALENDAR',
+    ].join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `vol-${flightNumber || 'rappel'}.ics`; a.click();
+    URL.revokeObjectURL(url);
+  }, [depDate, startDate, depTime, flightNumber, depAirport, arrAirport, arrTime]);
+
+  const flightComplete = hasFlight && flightNumber && depAirport && depTime && arrAirport && arrTime;
 
   const canNext1 =
     destination.trim() !== '' &&
@@ -241,6 +279,11 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       await onCreate({
         destination, startDate, endDate, travelers, budget, currency, interests,
         context: (context.text || context.files) ? context : undefined,
+        outboundFlight: flightComplete ? {
+          flightNumber, departureAirport: depAirport,
+          departureDate: depDate || startDate, departureTime: depTime,
+          arrivalAirport: arrAirport, arrivalTime: arrTime,
+        } : undefined,
       });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('step4.createFailed'));
@@ -361,6 +404,109 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 >+</button>
                 <span className="text-gray-400 text-sm">{t('step1.travelerCount', { count: travelers })}</span>
               </div>
+            </div>
+
+            {/* Optional flight details */}
+            <div className="border-t border-gray-800 pt-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-300">✈️ {t('step1.flightTitle')}</span>
+                <div className="flex gap-1.5">
+                  {[false, true].map(val => (
+                    <button
+                      key={String(val)}
+                      type="button"
+                      onClick={() => setHasFlight(val)}
+                      className={`px-3 py-1 text-xs rounded-lg border transition ${
+                        hasFlight === val
+                          ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
+                          : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-600'
+                      }`}
+                    >
+                      {val ? t('step1.flightYes') : t('step1.flightNo')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {hasFlight && (
+                <div className="space-y-3 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightNumber')}</label>
+                      <input
+                        type="text"
+                        value={flightNumber}
+                        onChange={e => setFlightNumber(e.target.value.toUpperCase())}
+                        placeholder="ex. AF350"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepDate')}</label>
+                      <input
+                        type="date"
+                        value={depDate || startDate}
+                        onChange={e => setDepDate(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepAirport')}</label>
+                      <input
+                        type="text"
+                        value={depAirport}
+                        onChange={e => setDepAirport(e.target.value)}
+                        placeholder="ex. CDG — Paris"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightDepTime')}</label>
+                      <input
+                        type="time"
+                        value={depTime}
+                        onChange={e => setDepTime(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightArrAirport')}</label>
+                      <input
+                        type="text"
+                        value={arrAirport}
+                        onChange={e => setArrAirport(e.target.value)}
+                        placeholder="ex. YUL — Montréal"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 text-sm transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1.5">{t('step1.flightArrTime')}</label>
+                      <input
+                        type="time"
+                        value={arrTime}
+                        onChange={e => setArrTime(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2.5 text-gray-100 focus:outline-none focus:border-indigo-500 text-sm transition [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  {flightComplete && (
+                    <button
+                      type="button"
+                      onClick={downloadICS}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 rounded-xl text-sm text-indigo-300 transition"
+                    >
+                      📅 {t('step1.flightICS')}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

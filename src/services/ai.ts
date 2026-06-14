@@ -364,9 +364,13 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
 
   const contextLine = trip.notes ? `USER CONTEXT: ${trip.notes}\n\n` : '';
 
+  const flightLine = trip.outboundFlight
+    ? `OUTBOUND FLIGHT: Flight ${trip.outboundFlight.flightNumber}, departs ${trip.outboundFlight.departureAirport} at ${trip.outboundFlight.departureTime} on ${trip.outboundFlight.departureDate ?? dates[0]}, arrives ${trip.outboundFlight.arrivalAirport} at ${trip.outboundFlight.arrivalTime}. Add this as the first transport activity of Day 1.\n`
+    : '';
+
   const prompt = mustDosBlock
     ? `Create a ${days}-day itinerary for ${trip.destination}.
-${contextLine}Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
+${contextLine}${flightLine}Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 
 INCLUDE ONLY THESE USER-SPECIFIED MUST-DO ACTIVITIES — nothing else:
@@ -383,7 +387,7 @@ Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
   {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"sightseeing|activity|transport|accommodation","estimatedCost":0,"lat":0.0000,"lng":0.0000}
 ]}`
-    : `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes || ''}\n\nCreate a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
+    : `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes || ''}\n\n${flightLine}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
 Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 

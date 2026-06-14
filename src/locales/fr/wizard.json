@@ -13,7 +13,17 @@
     "destinationPlaceholder": "ex. Tokyo, Japon",
     "duration": "{{days}}j",
     "travelerCount_one": "1 voyageur",
-    "travelerCount_other": "{{count}} voyageurs"
+    "travelerCount_other": "{{count}} voyageurs",
+    "flightTitle": "Connaissez-vous déjà votre vol ?",
+    "flightYes": "Oui",
+    "flightNo": "Non",
+    "flightNumber": "Numéro de vol",
+    "flightDepDate": "Date de départ",
+    "flightDepAirport": "Aéroport de départ",
+    "flightDepTime": "Heure de départ",
+    "flightArrAirport": "Aéroport d'arrivée",
+    "flightArrTime": "Heure d'arrivée",
+    "flightICS": "Télécharger rappel aéroport (3h avant)"
   },
   "step2": {
     "title": "Quel est votre style ?",

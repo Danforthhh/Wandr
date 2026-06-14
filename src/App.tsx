@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
-import { Trip, View, DetailTab, ChatMessage, TripContext, Session } from './types';
+import { Trip, View, DetailTab, ChatMessage, TripContext, Session, FlightInfo } from './types';
 import { auth } from './services/firebase';
 import { useAuth } from './hooks/useAuth';
 import {
@@ -118,6 +118,7 @@ export default function App() {
     currency: string;
     interests: string[];
     context?: TripContext;
+    outboundFlight?: FlightInfo;
   }): Promise<Trip> => {
     const [details, mustDos] = await Promise.all([
       generateTripDetails({ ...params, context: params.context }),
@@ -140,8 +141,9 @@ export default function App() {
       budget:        params.budget,
       currency:      params.currency,
       interests:     params.interests,
-      notes:         params.context?.text || undefined,
-      mustDos:       mustDos.length > 0 ? mustDos : undefined,
+      notes:          params.context?.text || undefined,
+      mustDos:        mustDos.length > 0 ? mustDos : undefined,
+      outboundFlight: params.outboundFlight,
       itinerary:     [],
       packingList:   [],
       status:        'planning',
