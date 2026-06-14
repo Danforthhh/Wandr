@@ -18,6 +18,8 @@
   "step2": {
     "title": "Quel est votre style ?",
     "subtitle": "Choisissez vos centres d'intérêt et définissez votre budget total.",
+    "budgetTitle": "Quel est votre budget ?",
+    "budgetSubtitle": "Définissez votre budget total pour ce voyage.",
     "interests": "Centres d'intérêt",
     "interestsHint": "(cochez tout ce qui s'applique)",
     "budget": "Budget total (tous les voyageurs)",

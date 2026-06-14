@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Trip } from '../types';
@@ -156,6 +156,14 @@ export default function TripMap({ trip }: Props) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MapController positions={positions} fallback={geocodedCenter} posKey={posKey} />
+
+          {/* Route polyline connecting activities in chronological order */}
+          {positions.length > 1 && (
+            <Polyline
+              positions={positions}
+              pathOptions={{ color: '#6366f1', weight: 2, opacity: 0.55, dashArray: '6 5' }}
+            />
+          )}
 
           {mapped.map(a => (
             <Marker

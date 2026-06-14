@@ -18,6 +18,8 @@
   "step2": {
     "title": "What's your style?",
     "subtitle": "Pick interests and set your total budget.",
+    "budgetTitle": "What's your budget?",
+    "budgetSubtitle": "Set the total budget for this trip.",
     "interests": "Interests",
     "interestsHint": "(select all that apply)",
     "budget": "Total Budget (all travelers)",

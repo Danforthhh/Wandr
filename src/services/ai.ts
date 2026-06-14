@@ -321,20 +321,24 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
     dates.push(d.toISOString().split('T')[0]);
   }
 
-  const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
-
   const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
   const langInstruction = lang === 'fr' ? ' Generate all text content values in French, but keep JSON property names in English.' : '';
 
-  const prompt = `Create a ${days}-day itinerary for ${trip.destination}.
-Dates: ${dates.join(', ')}. Interests: ${trip.interests.join(', ')}.
-Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).${notesLine}
+  const contextBlock = trip.notes
+    ? `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes}\n\n`
+    : '';
 
-Return a JSON array of ${days} objects. Each object:
-{"id":"day-N","date":"YYYY-MM-DD","title":"Day theme","activities":[
+  const prompt = `${contextBlock}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
+Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
+Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
+
+IMPORTANT: If the user context above mentions specific cities or locations with a number of days (e.g. "5 days in Montreal, 3 days in Quebec City"), assign each day to the correct city and populate "location" accordingly. Every activity's lat/lng must be precise coordinates for that specific city.
+
+Return a JSON array of exactly ${days} objects. Each object:
+{"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
   {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0,"lat":0.0000,"lng":0.0000}
 ]}
-Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for each specific location. Keep descriptions to 1 sentence.`;
+3–5 activities per day with realistic times spread across the day. Include accurate GPS coordinates for each specific location. Keep descriptions to 1 sentence.`;
 
   try {
     const text = await callGeneration(
@@ -351,6 +355,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
         return {
           ...day,
           date: d.toISOString().split('T')[0],
+          location: day.location ?? undefined,
           activities: Array.isArray(day.activities) ? day.activities : [],
         };
       });

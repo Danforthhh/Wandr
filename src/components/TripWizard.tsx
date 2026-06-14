@@ -110,7 +110,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     startDate !== '' &&
     endDate !== '' &&
     new Date(endDate) >= new Date(startDate);
-  const canNext2 = interests.length > 0 && budget > 0;
+  const canNext2 = budget > 0;
 
   const tripDays =
     startDate && endDate
@@ -322,39 +322,12 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
           </div>
         )}
 
-        {/* ── Step 2: Interests & Budget ── */}
+        {/* ── Step 2: Budget ── */}
         {step === 2 && (
           <div className="space-y-7">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step2.title')}</h2>
-              <p className="text-gray-400">{t('step2.subtitle')}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                {t('step2.interests')} <span className="text-gray-500">{t('step2.interestsHint')}</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {INTERESTS.map(({ id, label, emoji }) => {
-                  const selected = interests.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => toggleInterest(id)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-all text-left ${
-                        selected
-                          ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
-                          : 'bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-500 hover:text-gray-200'
-                      }`}
-                    >
-                      <span className="text-base">{emoji}</span>
-                      <span className="flex-1 leading-tight">{label}</span>
-                      {selected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step2.budgetTitle')}</h2>
+              <p className="text-gray-400">{t('step2.budgetSubtitle')}</p>
             </div>
 
             <div>
@@ -568,20 +541,6 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 <div className="bg-gray-800/60 rounded-xl p-3">
                   <p className="text-gray-500 text-xs mb-1">{t('step4.budget')}</p>
                   <p className="font-medium text-gray-200">{currency} {budget.toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-500 mb-2">{t('step4.interests')}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {interests.map(id => {
-                    const item = INTERESTS.find(i => i.id === id);
-                    return item ? (
-                      <span key={id} className="text-xs bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 px-2.5 py-1 rounded-full">
-                        {item.emoji} {item.label}
-                      </span>
-                    ) : null;
-                  })}
                 </div>
               </div>
 

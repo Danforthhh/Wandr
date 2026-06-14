@@ -39,6 +39,7 @@ export interface ItineraryDay {
   id: string;
   date: string;
   title: string;
+  location?: string;
   activities: Activity[];
 }
 
