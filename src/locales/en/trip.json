@@ -1,0 +1,103 @@
+{
+  "tabs": {
+    "overview": "Overview",
+    "itinerary": "Itinerary",
+    "packing": "Packing",
+    "map": "Map",
+    "chat": "AI Chat",
+    "search": "Search"
+  },
+  "tooltips": {
+    "settings": "API Settings"
+  },
+  "overview": {
+    "about": "About this trip",
+    "stats": {
+      "days": "Days",
+      "activities": "Activities",
+      "itemsPacked": "Items packed",
+      "interests": "Interests"
+    },
+    "budget": {
+      "title": "Provisional Budget",
+      "noEstimates": "No estimates yet",
+      "over": "▲ {{currency}}{{amount}} over",
+      "under": "▼ {{currency}}{{amount}} left",
+      "allocated": "Allocated",
+      "estSpend": "Est. spend",
+      "remaining": "Remaining",
+      "hint": "Add cost estimates to activities to track spending.",
+      "perPerson": "{{currency}}{{amount}} /person × {{count}} traveler(s)"
+    },
+    "cards": {
+      "itinerary": {
+        "title": "Itinerary",
+        "desc": "View & edit day-by-day",
+        "withDays": "{{days}} days planned"
+      },
+      "packing": {
+        "title": "Packing",
+        "desc": "View packing list",
+        "withProgress": "{{packed}}/{{total}} packed"
+      },
+      "chat": {
+        "title": "AI Chat",
+        "desc": "Ask anything about your trip",
+        "locked": "Requires Perplexity key"
+      },
+      "search": {
+        "title": "Search",
+        "desc": "Real-time flights, hotels, weather",
+        "locked": "Requires Perplexity key"
+      }
+    },
+    "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone."
+  },
+  "itinerary": {
+    "empty": {
+      "title": "No itinerary yet",
+      "desc": "AI will create a personalized day-by-day schedule based on your destination, interests, and travel dates.",
+      "generate": "Generate Itinerary",
+      "noAiDesc": "Add activities manually using the button below, or set up your Anthropic (Claude) API key to generate one with AI.",
+      "setup": "Set up AI in Settings"
+    },
+    "form": {
+      "time": "Time",
+      "category": "Category",
+      "activityName": "Activity name",
+      "activityPlaceholder": "e.g. Visit the Eiffel Tower",
+      "description": "Description",
+      "descPlaceholder": "Brief description…",
+      "cost": "Estimated cost per person",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "budget": {
+      "title": "Provisional budget",
+      "over": "▲ {{currency}} {{amount}} over",
+      "under": "▼ {{currency}} {{amount}} left",
+      "based": "Based on {{count}} activities with cost estimates × {{travelers}} traveler(s)"
+    },
+    "buttons": {
+      "regen": "Regen",
+      "addActivity": "Add activity",
+      "regenerate": "Regenerate itinerary",
+      "setupRegen": "Set up Claude key to regenerate"
+    },
+    "categories": {
+      "accommodation": "Accommodation",
+      "transport": "Transport",
+      "food": "Food",
+      "activity": "Activity",
+      "sightseeing": "Sightseeing",
+      "free": "Free time"
+    }
+  },
+  "activity": {
+    "title": "Activity",
+    "running": "{{count}} running",
+    "events": "{{count}} events",
+    "clearLog": "Clear log",
+    "empty": "No activity yet. Start by creating a trip or generating content."
+  }
+}

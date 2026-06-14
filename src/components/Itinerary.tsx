@@ -3,6 +3,7 @@ import {
   Loader2, Sparkles, Clock, MapPin, Utensils, Train, Bed,
   Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign, Lock, Settings,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay } from '../types';
 
 const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free'] as const;
@@ -37,6 +38,7 @@ interface EditFormProps {
 }
 
 function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) {
+  const { t } = useTranslation('trip');
   const inputCls =
     'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition';
 
@@ -44,7 +46,7 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
     <div className="bg-gray-900 border border-indigo-500/40 rounded-xl p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Time</label>
+          <label className="block text-xs text-gray-500 mb-1">{t('itinerary.form.time')}</label>
           <input
             type="time"
             value={value.time ?? '09:00'}
@@ -53,37 +55,37 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Category</label>
+          <label className="block text-xs text-gray-500 mb-1">{t('itinerary.form.category')}</label>
           <select
             value={value.category ?? 'activity'}
             onChange={e => onChange({ ...value, category: e.target.value as Activity['category'] })}
             className={inputCls}
           >
             {CATEGORIES.map(c => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{t(`itinerary.categories.${c}`)}</option>
             ))}
           </select>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Activity name</label>
+        <label className="block text-xs text-gray-500 mb-1">{t('itinerary.form.activityName')}</label>
         <input
           type="text"
           value={value.title ?? ''}
           onChange={e => onChange({ ...value, title: e.target.value })}
-          placeholder="e.g. Visit the Eiffel Tower"
+          placeholder={t('itinerary.form.activityPlaceholder')}
           className={inputCls}
           autoFocus
         />
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Description</label>
+        <label className="block text-xs text-gray-500 mb-1">{t('itinerary.form.description')}</label>
         <textarea
           value={value.description ?? ''}
           onChange={e => onChange({ ...value, description: e.target.value })}
-          placeholder="Brief description…"
+          placeholder={t('itinerary.form.descPlaceholder')}
           rows={2}
           className={inputCls + ' resize-none'}
         />
@@ -91,7 +93,7 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
 
       <div>
         <label className="block text-xs text-gray-500 mb-1">
-          <DollarSign className="w-3 h-3 inline" /> Estimated cost per person
+          <DollarSign className="w-3 h-3 inline" /> {t('itinerary.form.cost')}
         </label>
         <input
           type="number"
@@ -108,14 +110,14 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
           onClick={onCancel}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"
         >
-          <X className="w-3.5 h-3.5" /> Cancel
+          <X className="w-3.5 h-3.5" /> {t('itinerary.form.cancel')}
         </button>
         <button
           onClick={onSave}
           disabled={!value.title?.trim()}
           className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-lg font-medium transition"
         >
-          <Check className="w-3.5 h-3.5" /> Save
+          <Check className="w-3.5 h-3.5" /> {t('itinerary.form.save')}
         </button>
       </div>
     </div>
@@ -124,6 +126,7 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSettingsClick }: Props) {
+  const { t } = useTranslation('trip');
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [selectedDay, setSelectedDay] = useState(0);
@@ -192,11 +195,9 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
         <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-5">
           <span className="text-3xl">🗺️</span>
         </div>
-        <h3 className="text-xl font-semibold text-gray-200 mb-2">No itinerary yet</h3>
+        <h3 className="text-xl font-semibold text-gray-200 mb-2">{t('itinerary.empty.title')}</h3>
         <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
-          {hasAiKey
-            ? 'AI will create a personalized day-by-day schedule based on your destination, interests, and travel dates.'
-            : 'Add activities manually using the button below, or set up your Anthropic (Claude) API key to generate one with AI.'}
+          {hasAiKey ? t('itinerary.empty.desc') : t('itinerary.empty.noAiDesc')}
         </p>
         {error && (
           <div className="mb-5 text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 max-w-sm">{error}</div>
@@ -205,13 +206,13 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
           <button onClick={handleGenerate} disabled={loading}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 rounded-xl font-medium transition">
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-            {loading ? 'Generating itinerary…' : 'Generate Itinerary'}
+            {loading ? 'Generating itinerary…' : t('itinerary.empty.generate')}
           </button>
         ) : (
           <button onClick={onSettingsClick}
             className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition">
             <Settings className="w-4 h-4" />
-            Set up AI in Settings
+            {t('itinerary.empty.setup')}
           </button>
         )}
       </div>
@@ -226,7 +227,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
       {totalEst > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl px-5 py-4">
           <div className="flex items-center justify-between mb-2 text-sm">
-            <span className="text-gray-400 font-medium">Provisional budget</span>
+            <span className="text-gray-400 font-medium">{t('itinerary.budget.title')}</span>
             <div className="flex items-center gap-3">
               <span className="text-gray-400">
                 <span className="text-gray-200 font-semibold">{trip.currency} {totalEst.toLocaleString()}</span>
@@ -237,8 +238,9 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                   ? 'bg-red-500/15 text-red-300 border border-red-500/25'
                   : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
               }`}>
-                {overBudget ? '▲ ' : '▼ '}
-                {trip.currency} {Math.abs(remaining).toLocaleString()} {overBudget ? 'over' : 'left'}
+                {overBudget
+                  ? t('itinerary.budget.over', { currency: trip.currency, amount: Math.abs(remaining).toLocaleString() })
+                  : t('itinerary.budget.under', { currency: trip.currency, amount: remaining.toLocaleString() })}
               </span>
             </div>
           </div>
@@ -249,7 +251,10 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
             />
           </div>
           <p className="text-xs text-gray-600 mt-1.5">
-            Based on {allActivities.filter(a => a.estimatedCost > 0).length} activities with cost estimates × {trip.travelers} traveler(s)
+            {t('itinerary.budget.based', {
+              count: allActivities.filter(a => a.estimatedCost > 0).length,
+              travelers: trip.travelers,
+            })}
           </p>
         </div>
       )}
@@ -277,12 +282,12 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
               <button onClick={handleGenerate} disabled={loading}
                 className="md:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition">
                 {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                <span className="text-xs">Regen</span>
+                <span className="text-xs">{t('itinerary.buttons.regen')}</span>
               </button>
             ) : (
               <button onClick={onSettingsClick}
                 className="md:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-2 text-gray-700 hover:text-gray-500 hover:bg-gray-800 rounded-xl transition"
-                title="Set up AI key">
+                title={t('itinerary.buttons.setupRegen')}>
                 <Lock className="w-3.5 h-3.5" />
                 <span className="text-xs">AI</span>
               </button>
@@ -290,16 +295,16 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
           </div>
           {/* Regen on desktop */}
           {hasAiKey ? (
-            <button onClick={handleGenerate} disabled={loading} title="Regenerate itinerary"
+            <button onClick={handleGenerate} disabled={loading} title={t('itinerary.buttons.regenerate')}
               className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              Regen
+              {t('itinerary.buttons.regen')}
             </button>
           ) : (
-            <button onClick={onSettingsClick} title="Set up Claude key to regenerate"
+            <button onClick={onSettingsClick} title={t('itinerary.buttons.setupRegen')}
               className="hidden md:flex w-full mt-1 p-2 text-xs text-gray-700 hover:text-gray-500 hover:bg-gray-800 rounded-xl transition items-center justify-center gap-1">
               <Lock className="w-3.5 h-3.5" />
-              Regen
+              {t('itinerary.buttons.regen')}
             </button>
           )}
         </div>
@@ -419,7 +424,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-gray-700 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl text-sm text-gray-500 hover:text-indigo-400 transition"
               >
                 <Plus className="w-4 h-4" />
-                Add activity
+                {t('itinerary.buttons.addActivity')}
               </button>
             )}
           </div>

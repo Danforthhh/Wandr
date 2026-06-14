@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Trip } from '../types';
 import { Plus, MapPin, Calendar, Users, Settings, Plane, Compass } from 'lucide-react';
 
@@ -10,14 +11,15 @@ interface Props {
 }
 
 function TripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
+  const { t } = useTranslation('dashboard');
   const start = new Date(trip.startDate);
   const end = new Date(trip.endDate);
   const days = Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1;
 
   const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
-    planning: { bg: 'bg-amber-500/20', text: 'text-amber-300', label: 'Planning' },
-    upcoming: { bg: 'bg-blue-500/20', text: 'text-blue-300', label: 'Upcoming' },
-    completed: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', label: 'Completed' },
+    planning: { bg: 'bg-amber-500/20', text: 'text-amber-300', label: t('status.planning') },
+    upcoming: { bg: 'bg-blue-500/20', text: 'text-blue-300', label: t('status.upcoming') },
+    completed: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', label: t('status.completed') },
   };
   const status = statusConfig[trip.status];
 
@@ -63,8 +65,9 @@ function TripCard({ trip, onClick }: { trip: Trip; onClick: () => void }) {
 }
 
 export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsClick, hasAiKey }: Props) {
-  const upcoming = trips.filter(t => t.status !== 'completed');
-  const completed = trips.filter(t => t.status === 'completed');
+  const { t } = useTranslation('dashboard');
+  const upcoming = trips.filter(trip => trip.status !== 'completed');
+  const completed = trips.filter(trip => trip.status === 'completed');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -85,7 +88,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
           <button
             onClick={onSettingsClick}
             className="relative p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"
-            title="API Settings"
+            title={t('tooltips.settings')}
           >
             <Settings className="w-5 h-5" />
             {/* Amber dot when no AI key is configured */}
@@ -100,15 +103,15 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         {/* Page header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-100">Your Trips</h1>
-            <p className="text-gray-400 mt-1">Plan and explore the world with AI</p>
+            <h1 className="text-3xl font-bold text-gray-100">{t('header.title')}</h1>
+            <p className="text-gray-400 mt-1">{t('header.subtitle')}</p>
           </div>
           <button
             onClick={onNewTrip}
             className="flex items-center gap-2 px-3 md:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition shadow-lg shadow-indigo-900/30 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Trip</span>
+            <span className="hidden sm:inline">{t('buttons.newTrip')}</span>
           </button>
         </div>
 
@@ -116,13 +119,13 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         {!hasAiKey && (
           <div className="mb-6 flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
             <p className="text-sm text-amber-300">
-              AI features are disabled — add your Claude + Perplexity API keys in Settings to generate itineraries, packing lists, and use AI chat.
+              {t('apiWarning.message')}
             </p>
             <button
               onClick={onSettingsClick}
               className="shrink-0 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition"
             >
-              Set up
+              {t('apiWarning.setup')}
             </button>
           </div>
         )}
@@ -133,16 +136,16 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
             <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex items-center justify-center mb-5">
               <Compass className="w-10 h-10 text-indigo-400" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-200 mb-2">No trips yet</h2>
+            <h2 className="text-xl font-semibold text-gray-200 mb-2">{t('empty.title')}</h2>
             <p className="text-gray-500 max-w-sm mb-6 leading-relaxed">
-              Create your first trip and let AI build a personalized itinerary, packing list, and travel guide.
+              {t('empty.desc')}
             </p>
             <button
               onClick={onNewTrip}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium transition"
             >
               <Plus className="w-4 h-4" />
-              Plan your first trip
+              {t('empty.cta')}
             </button>
           </div>
         )}
@@ -151,7 +154,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         {upcoming.length > 0 && (
           <section className="mb-8">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
-              Upcoming & Planning
+              {t('tabs.upcoming')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcoming.map(trip => (
@@ -165,7 +168,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
         {completed.length > 0 && (
           <section>
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
-              Completed
+              {t('tabs.completed')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
               {completed.map(trip => (

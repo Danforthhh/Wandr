@@ -1,0 +1,81 @@
+{
+  "header": {
+    "title": "Nouveau voyage",
+    "step": "Étape {{step}} sur 4"
+  },
+  "step1": {
+    "title": "Où allez-vous ?",
+    "subtitle": "Indiquez votre destination et vos dates de voyage.",
+    "destination": "Destination",
+    "startDate": "Date de départ",
+    "endDate": "Date de retour",
+    "travelers": "Voyageurs",
+    "destinationPlaceholder": "ex. Tokyo, Japon",
+    "duration": "{{days}}j",
+    "travelerCount_one": "1 voyageur",
+    "travelerCount_other": "{{count}} voyageurs"
+  },
+  "step2": {
+    "title": "Quel est votre style ?",
+    "subtitle": "Choisissez vos centres d'intérêt et définissez votre budget total.",
+    "interests": "Centres d'intérêt",
+    "interestsHint": "(cochez tout ce qui s'applique)",
+    "budget": "Budget total (tous les voyageurs)",
+    "interestList": [
+      "Culture & Histoire",
+      "Gastronomie",
+      "Nature & Plein air",
+      "Aventure",
+      "Plage & Détente",
+      "Shopping",
+      "Vie nocturne",
+      "Photographie",
+      "En famille",
+      "Luxe",
+      "Voyage économique",
+      "Bien-être & Spa"
+    ]
+  },
+  "step3": {
+    "title": "Quelque chose à ajouter ?",
+    "subtitle": "Donnez à l'IA du contexte supplémentaire pour un voyage plus personnalisé. Totalement optionnel.",
+    "skip": "Passer",
+    "notesLabel": "📝 Notes",
+    "filesLabel": "📎 Fichiers & Images",
+    "fileCount": "{{count}}/{{max}}",
+    "dropZone": "Déposez vos fichiers ici ou parcourez",
+    "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 Mo chacun",
+    "notesPlaceholder": "ex. \"Je fête mon anniversaire de mariage, j'ai un hôtel réservé près de la Tour Eiffel, je suis végétarien, je ne peux pas commencer tôt le matin…\"",
+    "savedHint": "Sauvegardé avec le voyage — utilisé par l'IA à chaque génération d'itinéraire ou de liste de voyage."
+  },
+  "fileErrors": {
+    "maxFiles": "Maximum {{max}} fichiers.",
+    "unsupported": "\"{{name}}\" n'est pas un type de fichier pris en charge.",
+    "tooLarge": "\"{{name}}\" dépasse la limite de 4 Mo.",
+    "totalSize": "La taille totale dépasse 10 Mo. Supprimez un fichier avant d'en ajouter d'autres.",
+    "tooMany": "Seuls les {{count}} premiers fichiers ont été ajoutés (limite : {{max}}).",
+    "readFailed": "Impossible de lire \"{{name}}\"."
+  },
+  "step4": {
+    "title": "Prêt à créer !",
+    "subtitle": "L'IA va générer le nom, la description et les bases de votre itinéraire.",
+    "travelers": "Voyageurs",
+    "budget": "Budget",
+    "interests": "Centres d'intérêt",
+    "peopleCount_one": "1 personne",
+    "peopleCount_other": "{{count}} personnes",
+    "contextAdded": "Contexte ajouté",
+    "filesAttached": "{{count}} fichier(s) : {{names}}",
+    "apiWarning": "Une clé API Perplexity ou Claude est requise pour créer des voyages avec l'IA.",
+    "setup": "Configurer",
+    "error": "Erreur : {{message}}",
+    "createFailed": "Impossible de créer le voyage.",
+    "generating": "L'IA prépare votre voyage…",
+    "submit": "Créer le voyage avec l'IA"
+  },
+  "nav": {
+    "back": "Retour",
+    "next": "Suivant",
+    "review": "Vérifier"
+  }
+}

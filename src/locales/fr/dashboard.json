@@ -1,0 +1,30 @@
+{
+  "header": {
+    "title": "Mes voyages",
+    "subtitle": "Planifiez et explorez le monde avec l'IA"
+  },
+  "buttons": {
+    "newTrip": "Nouveau voyage"
+  },
+  "tabs": {
+    "upcoming": "À venir & En préparation",
+    "completed": "Terminés"
+  },
+  "status": {
+    "planning": "En préparation",
+    "upcoming": "À venir",
+    "completed": "Terminé"
+  },
+  "empty": {
+    "title": "Aucun voyage pour l'instant",
+    "desc": "Créez votre premier voyage et laissez l'IA construire un itinéraire, une liste de voyage et un guide personnalisés.",
+    "cta": "Planifier mon premier voyage"
+  },
+  "apiWarning": {
+    "message": "Les fonctionnalités IA sont désactivées — ajoutez vos clés API Claude + Perplexity dans les Paramètres pour générer des itinéraires, des listes de voyage et utiliser le chat IA.",
+    "setup": "Configurer"
+  },
+  "tooltips": {
+    "settings": "Paramètres API"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "quickPrompts": [
+    "What are the must-try local foods?",
+    "Best way to get around the city?",
+    "What should I know about local customs?",
+    "Hidden gems most tourists miss?",
+    "Best time of day to visit popular sites?",
+    "Safety tips for this destination?"
+  ],
+  "header": {
+    "title": "AI Travel Assistant",
+    "online": "Online",
+    "vision": "Vision"
+  },
+  "locked": {
+    "title": "AI Chat unavailable",
+    "desc": "Add your Perplexity API key to chat with an AI assistant about your trip to {{destination}}.",
+    "setup": "Set up in Settings"
+  },
+  "chat": {
+    "hint": "I know your trip details, interests, and budget. Attach images or files for visual help.",
+    "clear": "Clear chat",
+    "inputWithFile": "Add a message or just send the file…",
+    "inputPlaceholder": "Ask about {{destination}}...",
+    "attachBtn": "Attach image or file (max 3)",
+    "error": "Sorry, I ran into an error: {{message}}",
+    "clearConfirm": "Clear chat history?"
+  }
+}

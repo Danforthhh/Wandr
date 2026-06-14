@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,19 +19,19 @@ import {
 } from 'lucide-react';
 import { Trip, TripContext, TripContextFile } from '../types';
 
-const INTERESTS = [
-  { id: 'culture',     label: 'Culture & History',  emoji: '🏛️' },
-  { id: 'food',        label: 'Food & Dining',       emoji: '🍜' },
-  { id: 'nature',      label: 'Nature & Outdoors',   emoji: '🏔️' },
-  { id: 'adventure',   label: 'Adventure',           emoji: '🧗' },
-  { id: 'beach',       label: 'Beach & Relaxation',  emoji: '🏖️' },
-  { id: 'shopping',    label: 'Shopping',            emoji: '🛍️' },
-  { id: 'nightlife',   label: 'Nightlife',           emoji: '🎭' },
-  { id: 'photography', label: 'Photography',         emoji: '📸' },
-  { id: 'family',      label: 'Family-Friendly',     emoji: '👨‍👩‍👧' },
-  { id: 'luxury',      label: 'Luxury',              emoji: '✨' },
-  { id: 'backpacking', label: 'Budget Travel',       emoji: '🎒' },
-  { id: 'wellness',    label: 'Wellness & Spa',      emoji: '🧘' },
+const INTERESTS_META = [
+  { id: 'culture',     emoji: '🏛️' },
+  { id: 'food',        emoji: '🍜' },
+  { id: 'nature',      emoji: '🏔️' },
+  { id: 'adventure',   emoji: '🧗' },
+  { id: 'beach',       emoji: '🏖️' },
+  { id: 'shopping',    emoji: '🛍️' },
+  { id: 'nightlife',   emoji: '🎭' },
+  { id: 'photography', emoji: '📸' },
+  { id: 'family',      emoji: '👨‍👩‍👧' },
+  { id: 'luxury',      emoji: '✨' },
+  { id: 'backpacking', emoji: '🎒' },
+  { id: 'wellness',    emoji: '🧘' },
 ];
 
 const BUDGET_PRESETS = [500, 1500, 3000, 5000, 10000];
@@ -66,6 +67,14 @@ function fmtSize(bytes: number) {
 }
 
 export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick }: Props) {
+  const { t } = useTranslation('wizard');
+
+  const interestLabels = t('step2.interestList', { returnObjects: true }) as string[];
+  const INTERESTS = INTERESTS_META.map((item, i) => ({
+    ...item,
+    label: interestLabels[i] ?? item.id,
+  }));
+
   const [step, setStep]     = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
@@ -123,7 +132,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
     setFileError('');
     const arr = Array.from(incoming);
     const remaining = MAX_FILES - contextFiles.length;
-    if (remaining <= 0) { setFileError(`Maximum ${MAX_FILES} files.`); return; }
+    if (remaining <= 0) { setFileError(t('fileErrors.maxFiles', { max: MAX_FILES })); return; }
 
     // runningTotal accumulates within the batch so multiple large files in one
     // drop can't each individually pass the 10 MB check against the same baseline
@@ -133,15 +142,15 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
       const ACCEPTED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'txt', 'md'];
       if (!ACCEPTED_TYPES.includes(file.type) || !ACCEPTED_EXTS.includes(ext)) {
-        setFileError(`"${file.name}" is not a supported file type.`);
+        setFileError(t('fileErrors.unsupported', { name: file.name }));
         return;
       }
       if (file.size > MAX_FILE_BYTES) {
-        setFileError(`"${file.name}" exceeds the 4 MB limit.`);
+        setFileError(t('fileErrors.tooLarge', { name: file.name }));
         return;
       }
       if (runningTotal + file.size > MAX_TOTAL_BYTES) {
-        setFileError(`Total upload size exceeds 10 MB. Remove a file before adding more.`);
+        setFileError(t('fileErrors.totalSize'));
         return;
       }
       runningTotal += file.size;
@@ -162,13 +171,13 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
       };
       reader.onerror = () => {
         if (!mountedRef.current) return;
-        setFileError(`Failed to read "${file.name}".`);
+        setFileError(t('fileErrors.readFailed', { name: file.name }));
       };
       reader.readAsDataURL(file);
       added++;
     });
     if (arr.length > remaining + added) {
-      setFileError(`Only the first ${remaining} files were added (limit: ${MAX_FILES}).`);
+      setFileError(t('fileErrors.tooMany', { count: remaining, max: MAX_FILES }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextFiles.length]);
@@ -191,7 +200,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         context: (context.text || context.files) ? context : undefined,
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create trip');
+      setError(e instanceof Error ? e.message : t('step4.createFailed'));
       setLoading(false);
     }
   };
@@ -210,8 +219,8 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="font-semibold text-gray-100">New Trip</h1>
-            <p className="text-xs text-gray-500">Step {step} of 4</p>
+            <h1 className="font-semibold text-gray-100">{t('header.title')}</h1>
+            <p className="text-xs text-gray-500">{t('header.step', { step })}</p>
           </div>
           {/* Progress bar */}
           <div className="flex gap-1.5">
@@ -233,20 +242,20 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         {step === 1 && (
           <div className="space-y-7">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">Where are you going?</h2>
-              <p className="text-gray-400">Tell us your destination and travel dates.</p>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step1.title')}</h2>
+              <p className="text-gray-400">{t('step1.subtitle')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <MapPin className="w-4 h-4 inline mr-1.5 text-gray-500" />
-                Destination
+                {t('step1.destination')}
               </label>
               <input
                 type="text"
                 value={destination}
                 onChange={e => setDestination(e.target.value)}
-                placeholder="e.g. Tokyo, Japan"
+                placeholder={t('step1.destinationPlaceholder')}
                 className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
                 autoFocus
               />
@@ -256,7 +265,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1.5 text-gray-500" />
-                  Start Date
+                  {t('step1.startDate')}
                 </label>
                 <input
                   type="date"
@@ -271,8 +280,8 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  End Date
-                  {tripDays && <span className="ml-2 text-xs text-indigo-400">{tripDays}d</span>}
+                  {t('step1.endDate')}
+                  {tripDays && <span className="ml-2 text-xs text-indigo-400">{t('step1.duration', { days: tripDays })}</span>}
                 </label>
                 <input
                   type="date"
@@ -287,7 +296,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
                 <Users className="w-4 h-4 inline mr-1.5 text-gray-500" />
-                Travelers
+                {t('step1.travelers')}
               </label>
               <div className="flex items-center gap-4">
                 <button
@@ -301,7 +310,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                   onClick={() => setTravelers(travelers + 1)}
                   className="w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded-xl flex items-center justify-center text-xl font-light text-gray-300 transition"
                 >+</button>
-                <span className="text-gray-400 text-sm">{travelers === 1 ? 'traveler' : 'travelers'}</span>
+                <span className="text-gray-400 text-sm">{t('step1.travelerCount', { count: travelers })}</span>
               </div>
             </div>
           </div>
@@ -311,13 +320,13 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         {step === 2 && (
           <div className="space-y-7">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">What's your style?</h2>
-              <p className="text-gray-400">Pick interests and set your total budget.</p>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step2.title')}</h2>
+              <p className="text-gray-400">{t('step2.subtitle')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
-                Interests <span className="text-gray-500">(select all that apply)</span>
+                {t('step2.interests')} <span className="text-gray-500">{t('step2.interestsHint')}</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {INTERESTS.map(({ id, label, emoji }) => {
@@ -345,7 +354,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <DollarSign className="w-4 h-4 inline mr-1.5 text-gray-500" />
-                Total Budget (all travelers)
+                {t('step2.budget')}
               </label>
               <div className="flex gap-2">
                 <select
@@ -391,33 +400,33 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
           <div className="space-y-6">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h2 className="text-2xl font-bold text-gray-100 mb-1">Anything to add?</h2>
+                <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step3.title')}</h2>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Give the AI extra context for a more personalised trip. Fully optional.
+                  {t('step3.subtitle')}
                 </p>
               </div>
               <button
                 onClick={() => setStep(4)}
                 className="shrink-0 text-xs text-gray-500 hover:text-gray-300 underline underline-offset-2 mt-1 transition"
               >
-                Skip
+                {t('step3.skip')}
               </button>
             </div>
 
             {/* Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                📝 Notes
+                {t('step3.notesLabel')}
               </label>
               <textarea
                 value={contextText}
                 onChange={e => setContextText(e.target.value)}
                 rows={4}
-                placeholder={`e.g. "I'm celebrating my anniversary, I have a hotel booked near the Eiffel Tower, I'm vegetarian, I can't do early mornings…"`}
+                placeholder={t('step3.notesPlaceholder')}
                 className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none text-sm leading-relaxed"
               />
               <p className="text-xs text-gray-600 mt-1">
-                Saved with the trip — used by AI whenever you generate the itinerary or packing list.
+                {t('step3.savedHint')}
               </p>
             </div>
 
@@ -425,9 +434,9 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-300">
-                  📎 Files &amp; Images
+                  {t('step3.filesLabel')}
                   <span className="ml-2 text-xs font-normal text-gray-500">
-                    {contextFiles.length}/{MAX_FILES}
+                    {t('step3.fileCount', { count: contextFiles.length, max: MAX_FILES })}
                   </span>
                 </label>
                 </div>
@@ -461,10 +470,10 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 />
                 <Upload className="w-6 h-6 text-gray-500" />
                 <p className="text-sm text-gray-400 text-center">
-                  Drop files here or <span className="text-indigo-400">browse</span>
+                  {t('step3.dropZone')}
                 </p>
                 <p className="text-xs text-gray-600 text-center">
-                  JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 MB each
+                  {t('step3.fileTypes')}
                 </p>
               </div>
 
@@ -523,9 +532,9 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-100 mb-1">Ready to create!</h2>
+              <h2 className="text-2xl font-bold text-gray-100 mb-1">{t('step4.title')}</h2>
               <p className="text-gray-400">
-                AI will generate your trip name, description, and set up the foundation for your itinerary.
+                {t('step4.subtitle')}
               </p>
             </div>
 
@@ -547,17 +556,17 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-800/60 rounded-xl p-3">
-                  <p className="text-gray-500 text-xs mb-1">Travelers</p>
-                  <p className="font-medium text-gray-200">{travelers} {travelers === 1 ? 'person' : 'people'}</p>
+                  <p className="text-gray-500 text-xs mb-1">{t('step4.travelers')}</p>
+                  <p className="font-medium text-gray-200">{t('step4.peopleCount', { count: travelers })}</p>
                 </div>
                 <div className="bg-gray-800/60 rounded-xl p-3">
-                  <p className="text-gray-500 text-xs mb-1">Budget</p>
+                  <p className="text-gray-500 text-xs mb-1">{t('step4.budget')}</p>
                   <p className="font-medium text-gray-200">{currency} {budget.toLocaleString()}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-2">Interests</p>
+                <p className="text-xs text-gray-500 mb-2">{t('step4.interests')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {interests.map(id => {
                     const item = INTERESTS.find(i => i.id === id);
@@ -573,7 +582,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               {/* Context summary */}
               {(contextText || contextFiles.length > 0) && (
                 <div className="border-t border-gray-800 pt-4">
-                  <p className="text-xs text-gray-500 mb-2">Context added</p>
+                  <p className="text-xs text-gray-500 mb-2">{t('step4.contextAdded')}</p>
                   <div className="space-y-1.5">
                     {contextText && (
                       <p className="text-xs text-gray-400 bg-gray-800/60 rounded-lg px-3 py-2 line-clamp-2">
@@ -582,7 +591,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                     )}
                     {contextFiles.length > 0 && (
                       <p className="text-xs text-gray-400 bg-gray-800/60 rounded-lg px-3 py-2">
-                        📎 {contextFiles.length} file{contextFiles.length !== 1 ? 's' : ''}: {contextFiles.map(f => f.name).join(', ')}
+                        📎 {t('step4.filesAttached', { count: contextFiles.length, names: contextFiles.map(f => f.name).join(', ') })}
                       </p>
                     )}
                   </div>
@@ -594,21 +603,21 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
             {!hasAiKey && (
               <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
                 <p className="text-sm text-amber-300">
-                  A Perplexity or Claude API key is required to create trips with AI.
+                  {t('step4.apiWarning')}
                 </p>
                 <button
                   onClick={onSettingsClick}
                   className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-lg transition"
                 >
                   <Settings className="w-3.5 h-3.5" />
-                  Set up
+                  {t('step4.setup')}
                 </button>
               </div>
             )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-sm text-red-300">
-                <strong>Error:</strong> {error}
+                {t('step4.error', { message: error })}
               </div>
             )}
 
@@ -620,12 +629,12 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  AI is crafting your trip…
+                  {t('step4.generating')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5" />
-                  Create Trip with AI
+                  {t('step4.submit')}
                 </>
               )}
             </button>
@@ -641,7 +650,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
                 className="flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-xl transition"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back
+                {t('nav.back')}
               </button>
             ) : (
               <div />
@@ -651,7 +660,7 @@ export default function TripWizard({ onBack, onCreate, hasAiKey, onSettingsClick
               disabled={step === 1 ? !canNext1 : step === 2 ? !canNext2 : false}
               className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium transition"
             >
-              {step === 3 ? 'Review' : 'Next'}
+              {step === 3 ? t('nav.review') : t('nav.next')}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

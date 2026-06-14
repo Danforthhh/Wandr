@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ActivityEntry, setActivityListener } from '../services/activityLog';
 import { Loader2, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Play a gentle two-tone chime using Web Audio API
 function playChime() {
@@ -26,6 +27,7 @@ function playChime() {
 }
 
 export default function ActivityLog() {
+  const { t } = useTranslation('trip');
   const [entries, setEntries]     = useState<ActivityEntry[]>([]);
   const [expanded, setExpanded]   = useState(true);
   const [hasNew, setHasNew]       = useState(false);
@@ -108,15 +110,15 @@ export default function ActivityLog() {
       >
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-medium text-gray-200">Activity</span>
+          <span className="text-sm font-medium text-gray-200">{t('activity.title')}</span>
           {pending > 0 && (
             <span className="flex items-center gap-1 text-xs text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full">
               <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              {pending} running
+              {t('activity.running', { count: pending })}
             </span>
           )}
           {!expanded && hasEntries && pending === 0 && (
-            <span className="text-xs text-gray-500">{entries.length} events</span>
+            <span className="text-xs text-gray-500">{t('activity.events', { count: entries.length })}</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -124,7 +126,7 @@ export default function ActivityLog() {
             <span
               onClick={e => { e.stopPropagation(); setEntries([]); }}
               className="p-1 text-gray-600 hover:text-gray-400 rounded transition cursor-pointer"
-              title="Clear log"
+              title={t('activity.clearLog')}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </span>
@@ -142,7 +144,7 @@ export default function ActivityLog() {
         <div className="bg-gray-950 max-h-64 overflow-y-auto">
           {entries.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-gray-600">
-              No activity yet. Start by creating a trip or generating content.
+              {t('activity.empty')}
             </div>
           ) : (
             <div className="divide-y divide-gray-800/50">

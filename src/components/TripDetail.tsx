@@ -9,12 +9,14 @@ import {
   Settings,
   Lock,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Trip, DetailTab, ChatMessage } from '../types';
 import Itinerary from './Itinerary';
 import PackingList from './PackingList';
 import AIChat from './AIChat';
 import TripMap from './TripMap';
 import TripSearch from './TripSearch';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface Props {
   trip: Trip;
@@ -32,15 +34,6 @@ interface Props {
   onSettingsClick: () => void;
 }
 
-const TABS: { id: DetailTab; label: string; emoji: string; searchOnly?: boolean }[] = [
-  { id: 'overview',  label: 'Overview',  emoji: '🏠' },
-  { id: 'itinerary', label: 'Itinerary', emoji: '🗺️' },
-  { id: 'packing',   label: 'Packing',   emoji: '🧳' },
-  { id: 'map',       label: 'Map',       emoji: '📍' },
-  { id: 'chat',      label: 'AI Chat',   emoji: '💬', searchOnly: true },
-  { id: 'search',    label: 'Search',    emoji: '🔍', searchOnly: true },
-];
-
 const STATUS_CYCLE: Record<Trip['status'], Trip['status']> = {
   planning: 'upcoming', upcoming: 'completed', completed: 'planning',
 };
@@ -57,12 +50,14 @@ export default function TripDetail({
   getChatHistory, saveChatHistory,
   hasGenerationKey, hasSearchKey, onSettingsClick,
 }: Props) {
+  const { t } = useTranslation('trip');
+
   const start = new Date(trip.startDate + 'T12:00:00');
   const end   = new Date(trip.endDate   + 'T12:00:00');
   const days  = Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1;
 
   const handleDelete = () => {
-    if (confirm(`Delete "${trip.name}"? This cannot be undone.`)) onDelete(trip.id);
+    if (confirm(t('overview.deleteConfirm', { name: trip.name }))) onDelete(trip.id);
   };
 
   const cycleStatus = () => onUpdateTrip({ ...trip, status: STATUS_CYCLE[trip.status] });
@@ -75,6 +70,15 @@ export default function TripDetail({
   const budgetPct         = Math.min(100, trip.budget > 0 ? (totalEst / trip.budget) * 100 : 0);
   const overBudget        = remaining < 0;
   const noAnyKey          = !hasGenerationKey && !hasSearchKey;
+
+  const TABS: { id: DetailTab; label: string; emoji: string; searchOnly?: boolean }[] = [
+    { id: 'overview',  label: t('tabs.overview'),   emoji: '🏠' },
+    { id: 'itinerary', label: t('tabs.itinerary'),  emoji: '🗺️' },
+    { id: 'packing',   label: t('tabs.packing'),    emoji: '🧳' },
+    { id: 'map',       label: t('tabs.map'),        emoji: '📍' },
+    { id: 'chat',      label: t('tabs.chat'),       emoji: '💬', searchOnly: true },
+    { id: 'search',    label: t('tabs.search'),     emoji: '🔍', searchOnly: true },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950 pb-16 md:pb-0">
@@ -90,9 +94,10 @@ export default function TripDetail({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <button onClick={onSettingsClick}
               className="relative p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition"
-              title="API Settings">
+              title={t('tooltips.settings')}>
               <Settings className="w-4 h-4" />
               {noAnyKey && (
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
@@ -172,18 +177,18 @@ export default function TripDetail({
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 md:p-6">
-              <h3 className="font-semibold text-gray-200 mb-2">About this trip</h3>
+              <h3 className="font-semibold text-gray-200 mb-2">{t('overview.about')}</h3>
               <p className="text-gray-400 leading-relaxed text-sm md:text-base">{trip.description}</p>
             </div>
 
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: 'Days',         value: days,                  suffix: '' },
-                { label: 'Activities',   value: activityCount || '—',  suffix: '' },
-                { label: 'Items packed', value: packedCount || '—',
+                { label: t('overview.stats.days'),        value: days,                  suffix: '' },
+                { label: t('overview.stats.activities'),  value: activityCount || '—',  suffix: '' },
+                { label: t('overview.stats.itemsPacked'), value: packedCount || '—',
                   suffix: trip.packingList.length > 0 ? `/${trip.packingList.length}` : '' },
-                { label: 'Interests',    value: trip.interests.length, suffix: '' },
+                { label: t('overview.stats.interests'),   value: trip.interests.length, suffix: '' },
               ].map(({ label, value, suffix }) => (
                 <div key={label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5 text-center">
                   <p className="text-xl md:text-2xl font-bold text-indigo-400">
@@ -198,22 +203,24 @@ export default function TripDetail({
             {/* Provisional budget */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 md:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-200">Provisional Budget</h3>
+                <h3 className="font-semibold text-gray-200">{t('overview.budget.title')}</h3>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
                   totalEst === 0 ? 'bg-gray-800 text-gray-500 border-gray-700'
                   : overBudget   ? 'bg-red-500/15 text-red-300 border-red-500/25'
                   :                'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
                 }`}>
-                  {totalEst === 0 ? 'No estimates yet'
-                   : overBudget  ? `▲ ${trip.currency}${Math.abs(remaining).toLocaleString()} over`
-                   :               `▼ ${trip.currency}${remaining.toLocaleString()} left`}
+                  {totalEst === 0
+                    ? t('overview.budget.noEstimates')
+                    : overBudget
+                    ? t('overview.budget.over', { currency: trip.currency, amount: Math.abs(remaining).toLocaleString() })
+                    : t('overview.budget.under', { currency: trip.currency, amount: remaining.toLocaleString() })}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 text-center">
                 {[
-                  { label: 'Allocated',  val: `${trip.currency} ${trip.budget.toLocaleString()}`,  color: 'text-gray-200' },
-                  { label: 'Est. spend', val: `${trip.currency} ${totalEst.toLocaleString()}`,     color: totalEst === 0 ? 'text-gray-500' : overBudget ? 'text-red-400' : 'text-gray-200' },
-                  { label: 'Remaining',  val: totalEst === 0 ? '—' : `${trip.currency} ${remaining.toLocaleString()}`, color: totalEst === 0 ? 'text-gray-500' : overBudget ? 'text-red-400' : 'text-emerald-400' },
+                  { label: t('overview.budget.allocated'), val: `${trip.currency} ${trip.budget.toLocaleString()}`,  color: 'text-gray-200' },
+                  { label: t('overview.budget.estSpend'),  val: `${trip.currency} ${totalEst.toLocaleString()}`,     color: totalEst === 0 ? 'text-gray-500' : overBudget ? 'text-red-400' : 'text-gray-200' },
+                  { label: t('overview.budget.remaining'), val: totalEst === 0 ? '—' : `${trip.currency} ${remaining.toLocaleString()}`, color: totalEst === 0 ? 'text-gray-500' : overBudget ? 'text-red-400' : 'text-emerald-400' },
                 ].map(({ label, val, color }) => (
                   <div key={label} className="bg-gray-800/60 rounded-xl p-3">
                     <p className="text-xs text-gray-500 mb-1">{label}</p>
@@ -227,13 +234,13 @@ export default function TripDetail({
               </div>
               <p className="text-xs text-gray-600 mt-2">
                 {totalEst === 0
-                  ? 'Add cost estimates to activities to track spending.'
-                  : `${trip.currency}${totalEstPerPerson.toLocaleString()} /person × ${trip.travelers} traveler(s)`}
+                  ? t('overview.budget.hint')
+                  : t('overview.budget.perPerson', { currency: trip.currency, amount: totalEstPerPerson.toLocaleString(), count: trip.travelers })}
               </p>
             </div>
 
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 md:p-6">
-              <h3 className="font-semibold text-gray-200 mb-3">Interests</h3>
+              <h3 className="font-semibold text-gray-200 mb-3">{t('overview.stats.interests')}</h3>
               <div className="flex flex-wrap gap-2">
                 {trip.interests.map(id => (
                   <span key={id}
@@ -247,10 +254,34 @@ export default function TripDetail({
             {/* Quick-action cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { tab: 'itinerary' as DetailTab, emoji: '🗺️', title: 'Itinerary', desc: trip.itinerary.length ? `${days} days planned` : 'View & edit day-by-day', locked: false },
-                { tab: 'packing'   as DetailTab, emoji: '🧳', title: 'Packing',   desc: trip.packingList.length ? `${packedCount}/${trip.packingList.length} packed` : 'View packing list', locked: false },
-                { tab: 'chat'      as DetailTab, emoji: '💬', title: 'AI Chat',   desc: hasSearchKey ? 'Ask anything about your trip' : 'Requires Perplexity key', locked: !hasSearchKey },
-                { tab: 'search'    as DetailTab, emoji: '🔍', title: 'Search',    desc: hasSearchKey ? 'Real-time flights, hotels, weather' : 'Requires Perplexity key', locked: !hasSearchKey },
+                {
+                  tab: 'itinerary' as DetailTab, emoji: '🗺️',
+                  title: t('overview.cards.itinerary.title'),
+                  desc: trip.itinerary.length
+                    ? t('overview.cards.itinerary.withDays', { days })
+                    : t('overview.cards.itinerary.desc'),
+                  locked: false,
+                },
+                {
+                  tab: 'packing' as DetailTab, emoji: '🧳',
+                  title: t('overview.cards.packing.title'),
+                  desc: trip.packingList.length
+                    ? t('overview.cards.packing.withProgress', { packed: packedCount, total: trip.packingList.length })
+                    : t('overview.cards.packing.desc'),
+                  locked: false,
+                },
+                {
+                  tab: 'chat' as DetailTab, emoji: '💬',
+                  title: t('overview.cards.chat.title'),
+                  desc: hasSearchKey ? t('overview.cards.chat.desc') : t('overview.cards.chat.locked'),
+                  locked: !hasSearchKey,
+                },
+                {
+                  tab: 'search' as DetailTab, emoji: '🔍',
+                  title: t('overview.cards.search.title'),
+                  desc: hasSearchKey ? t('overview.cards.search.desc') : t('overview.cards.search.locked'),
+                  locked: !hasSearchKey,
+                },
               ].map(({ tab, emoji, title, desc, locked }) => (
                 <button key={tab}
                   onClick={() => !locked && onTabChange(tab)}

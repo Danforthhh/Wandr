@@ -1,0 +1,81 @@
+{
+  "header": {
+    "title": "New Trip",
+    "step": "Step {{step}} of 4"
+  },
+  "step1": {
+    "title": "Where are you going?",
+    "subtitle": "Tell us your destination and travel dates.",
+    "destination": "Destination",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "travelers": "Travelers",
+    "destinationPlaceholder": "e.g. Tokyo, Japan",
+    "duration": "{{days}}d",
+    "travelerCount_one": "1 traveler",
+    "travelerCount_other": "{{count}} travelers"
+  },
+  "step2": {
+    "title": "What's your style?",
+    "subtitle": "Pick interests and set your total budget.",
+    "interests": "Interests",
+    "interestsHint": "(select all that apply)",
+    "budget": "Total Budget (all travelers)",
+    "interestList": [
+      "Culture & History",
+      "Food & Dining",
+      "Nature & Outdoors",
+      "Adventure",
+      "Beach & Relaxation",
+      "Shopping",
+      "Nightlife",
+      "Photography",
+      "Family-Friendly",
+      "Luxury",
+      "Budget Travel",
+      "Wellness & Spa"
+    ]
+  },
+  "step3": {
+    "title": "Anything to add?",
+    "subtitle": "Give the AI extra context for a more personalised trip. Fully optional.",
+    "skip": "Skip",
+    "notesLabel": "📝 Notes",
+    "filesLabel": "📎 Files & Images",
+    "fileCount": "{{count}}/{{max}}",
+    "dropZone": "Drop files here or browse",
+    "fileTypes": "JPG · PNG · WEBP · GIF · PDF · TXT · MD · Max 4 MB each",
+    "notesPlaceholder": "e.g. \"I'm celebrating my anniversary, I have a hotel booked near the Eiffel Tower, I'm vegetarian, I can't do early mornings…\"",
+    "savedHint": "Saved with the trip — used by AI whenever you generate the itinerary or packing list."
+  },
+  "fileErrors": {
+    "maxFiles": "Maximum {{max}} files.",
+    "unsupported": "\"{{name}}\" is not a supported file type.",
+    "tooLarge": "\"{{name}}\" exceeds the 4 MB limit.",
+    "totalSize": "Total upload size exceeds 10 MB. Remove a file before adding more.",
+    "tooMany": "Only the first {{count}} files were added (limit: {{max}}).",
+    "readFailed": "Failed to read \"{{name}}\"."
+  },
+  "step4": {
+    "title": "Ready to create!",
+    "subtitle": "AI will generate your trip name, description, and set up the foundation for your itinerary.",
+    "travelers": "Travelers",
+    "budget": "Budget",
+    "interests": "Interests",
+    "peopleCount_one": "1 person",
+    "peopleCount_other": "{{count}} people",
+    "contextAdded": "Context added",
+    "filesAttached": "{{count}} file(s): {{names}}",
+    "apiWarning": "A Perplexity or Claude API key is required to create trips with AI.",
+    "setup": "Set up",
+    "error": "Error: {{message}}",
+    "createFailed": "Failed to create trip",
+    "generating": "AI is crafting your trip…",
+    "submit": "Create Trip with AI"
+  },
+  "nav": {
+    "back": "Back",
+    "next": "Next",
+    "review": "Review"
+  }
+}

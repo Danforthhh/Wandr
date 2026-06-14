@@ -1,0 +1,29 @@
+{
+  "quickPrompts": [
+    "Quels sont les plats locaux incontournables ?",
+    "Quel est le meilleur moyen de se déplacer en ville ?",
+    "Que dois-je savoir sur les coutumes locales ?",
+    "Les pépites cachées que la plupart des touristes ratent ?",
+    "Quel est le meilleur moment de la journée pour visiter les sites populaires ?",
+    "Conseils de sécurité pour cette destination ?"
+  ],
+  "header": {
+    "title": "Assistant de voyage IA",
+    "online": "En ligne",
+    "vision": "Vision"
+  },
+  "locked": {
+    "title": "Chat IA indisponible",
+    "desc": "Ajoutez votre clé API Perplexity pour chatter avec un assistant IA sur votre voyage à {{destination}}.",
+    "setup": "Configurer dans les Paramètres"
+  },
+  "chat": {
+    "hint": "Je connais les détails de votre voyage, vos centres d'intérêt et votre budget. Joignez des images ou fichiers pour de l'aide visuelle.",
+    "clear": "Effacer le chat",
+    "inputWithFile": "Ajoutez un message ou envoyez simplement le fichier…",
+    "inputPlaceholder": "Posez une question sur {{destination}}...",
+    "attachBtn": "Joindre une image ou un fichier (max 3)",
+    "error": "Désolé, une erreur s'est produite : {{message}}",
+    "clearConfirm": "Effacer l'historique du chat ?"
+  }
+}

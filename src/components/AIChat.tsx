@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Loader2, Bot, User, Trash2, Lock, Settings, Paperclip, X, FileText } from 'lucide-react';
 import { Trip, ChatMessage, TripContextFile } from '../types';
 import { chatAboutTrip } from '../services/ai';
@@ -11,14 +12,6 @@ interface Props {
   saveChatHistory: (tripId: string, messages: ChatMessage[]) => Promise<void>;
 }
 
-const QUICK_PROMPTS = [
-  'What are the must-try local foods?',
-  'Best way to get around the city?',
-  'What should I know about local customs?',
-  'Hidden gems most tourists miss?',
-  'Best time of day to visit popular sites?',
-  'Safety tips for this destination?',
-];
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/markdown';
 const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
@@ -52,6 +45,7 @@ async function fileToContextFile(file: File): Promise<TripContextFile | null> {
 }
 
 export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory, saveChatHistory }: Props) {
+  const { t } = useTranslation('chat');
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState('');
   const [loading, setLoading]         = useState(false);
@@ -129,7 +123,7 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
       const errMsg: ChatMessage = {
         id: nanoid(),
         role: 'assistant',
-        content: `Sorry, I ran into an error: ${msg}`,
+        content: t('chat.error', { message: msg }),
         timestamp: new Date().toISOString(),
       };
       const final = [...withUser, errMsg];
@@ -141,7 +135,7 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
   };
 
   const clearChat = async () => {
-    if (confirm('Clear chat history?')) {
+    if (confirm(t('chat.clearConfirm'))) {
       setMessages([]);
       await saveChatHistory(trip.id, []);
     }
@@ -154,16 +148,16 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
         <div className="w-16 h-16 bg-gray-800 border border-gray-700 rounded-2xl flex items-center justify-center mb-5">
           <Lock className="w-7 h-7 text-gray-500" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-400 mb-2">AI Chat unavailable</h3>
+        <h3 className="text-lg font-semibold text-gray-400 mb-2">{t('locked.title')}</h3>
         <p className="text-gray-600 max-w-sm mb-6 leading-relaxed text-sm">
-          Add your Perplexity API key to chat with an AI assistant about your trip to {trip.destination}.
+          {t('locked.desc', { destination: trip.destination })}
         </p>
         <button
           onClick={onSettingsClick}
           className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition"
         >
           <Settings className="w-4 h-4" />
-          Set up in Settings
+          {t('locked.setup')}
         </button>
       </div>
     );
@@ -177,15 +171,15 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
           <div className="w-7 h-7 bg-indigo-500/20 rounded-lg flex items-center justify-center">
             <Bot className="w-4 h-4 text-indigo-400" />
           </div>
-          <span className="text-sm font-medium text-gray-300">AI Travel Assistant</span>
-          <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Online</span>
-          <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full">Vision</span>
+          <span className="text-sm font-medium text-gray-300">{t('header.title')}</span>
+          <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">{t('header.online')}</span>
+          <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full">{t('header.vision')}</span>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearChat}
             className="p-1.5 text-gray-600 hover:text-gray-400 hover:bg-gray-800 rounded-lg transition"
-            title="Clear chat"
+            title={t('chat.clear')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -199,12 +193,12 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
             <div className="w-14 h-14 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-3">
               <Bot className="w-7 h-7 text-indigo-400" />
             </div>
-            <p className="font-medium text-gray-300 mb-1">Ask me anything about {trip.destination}</p>
+            <p className="font-medium text-gray-300 mb-1">{t('chat.inputPlaceholder', { destination: trip.destination })}</p>
             <p className="text-sm text-gray-500 mb-5 max-w-sm">
-              I know your trip details, interests, and budget. Attach images or files for visual help.
+              {t('chat.hint')}
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {QUICK_PROMPTS.map(p => (
+              {(t('quickPrompts', { returnObjects: true }) as string[]).map(p => (
                 <button
                   key={p}
                   onClick={() => send(p)}
@@ -312,7 +306,7 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={loading || attachments.length >= 3}
-            title="Attach image or file (max 3)"
+            title={t('chat.attachBtn')}
             className="p-3 text-gray-500 hover:text-indigo-400 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl transition shrink-0"
           >
             <Paperclip className="w-5 h-5" />
@@ -321,7 +315,7 @@ export default function AIChat({ trip, hasAiKey, onSettingsClick, getChatHistory
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={attachments.length ? 'Add a message or just send the file…' : `Ask about ${trip.destination}...`}
+            placeholder={attachments.length ? t('chat.inputWithFile') : t('chat.inputPlaceholder', { destination: trip.destination })}
             disabled={loading}
             className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition disabled:opacity-50 text-sm"
           />

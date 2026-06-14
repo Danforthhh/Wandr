@@ -1,0 +1,123 @@
+{
+  "nav": {
+    "signIn": "Sign in",
+    "planTrip": "Plan a trip →"
+  },
+  "badge": "Your AI travel planner",
+  "hero": {
+    "line1": "The world",
+    "line2": "is waiting.",
+    "line3": "Go explore it.",
+    "desc": "Tell Wandr where you want to go. It handles the rest — full itinerary, packing list, interactive map, and a travel companion you can ask anything.",
+    "ctaPrimary": "Start planning — it's free",
+    "ctaSecondary": "Sign in",
+    "disclaimer": "No credit card · No setup · Works in 60 seconds"
+  },
+  "destinations": {
+    "heading": "Popular destinations",
+    "anywhere": "+ anywhere else",
+    "list": [
+      { "flag": "🗼", "name": "Paris" },
+      { "flag": "🌸", "name": "Tokyo" },
+      { "flag": "🏝️", "name": "Bali" },
+      { "flag": "🗽", "name": "New York" },
+      { "flag": "🏛️", "name": "Rome" },
+      { "flag": "🌊", "name": "Santorini" },
+      { "flag": "🦁", "name": "Nairobi" },
+      { "flag": "🎭", "name": "Barcelona" },
+      { "flag": "🏔️", "name": "Queenstown" },
+      { "flag": "🌴", "name": "Tulum" },
+      { "flag": "🍜", "name": "Bangkok" },
+      { "flag": "🎑", "name": "Kyoto" }
+    ]
+  },
+  "howItWorks": {
+    "heading": "How it works",
+    "title1": "From idea to trip plan",
+    "title2": "in three steps.",
+    "steps": [
+      {
+        "num": "Step 1",
+        "icon": "✍️",
+        "title": "Tell us where you're headed",
+        "desc": "Destination, dates, who you're with, what you love. Takes 60 seconds."
+      },
+      {
+        "num": "Step 2",
+        "icon": "✨",
+        "title": "AI builds your entire trip",
+        "desc": "Itinerary, packing list, budget breakdown — personalized to you, not copy-pasted from a blog."
+      },
+      {
+        "num": "Step 3",
+        "icon": "🌍",
+        "title": "Go explore",
+        "desc": "Adjust on the fly, chat with AI, search live info. Your plan travels with you."
+      }
+    ]
+  },
+  "features": {
+    "heading": "What's included",
+    "title1": "Everything in one place.",
+    "title2": "Nothing left to figure out.",
+    "list": [
+      {
+        "icon": "🗓️",
+        "title": "Day-by-day itinerary",
+        "desc": "Claude crafts a full schedule around your interests, pace, and budget — not a generic template."
+      },
+      {
+        "icon": "🗺️",
+        "title": "Everything on the map",
+        "desc": "Every activity, restaurant, and landmark pinned on a live interactive map. Visualize before you go."
+      },
+      {
+        "icon": "🧳",
+        "title": "Smart packing list",
+        "desc": "What to bring for a hike through Patagonia is very different from a weekend in Paris. Wandr knows."
+      },
+      {
+        "icon": "💬",
+        "title": "Your AI travel companion",
+        "desc": "Ask about visa requirements, local customs, what to eat, when to avoid tourist crowds. Any question."
+      },
+      {
+        "icon": "🔭",
+        "title": "Real-time search",
+        "desc": "Live flight, hotel, and activity availability via Perplexity. Always current, never stale."
+      },
+      {
+        "icon": "📸",
+        "title": "Bring your inspiration",
+        "desc": "Upload photos, PDFs, or notes. Wandr reads them and builds your plan around what you already love."
+      }
+    ]
+  },
+  "included": {
+    "items": [
+      { "icon": "🗓️", "label": "AI itineraries" },
+      { "icon": "🧳", "label": "Packing lists" },
+      { "icon": "🗺️", "label": "Interactive map" },
+      { "icon": "💬", "label": "AI travel chat" },
+      { "icon": "🔭", "label": "Live search" },
+      { "icon": "📸", "label": "File upload" },
+      { "icon": "☁️", "label": "Cloud sync" },
+      { "icon": "♾️", "label": "Unlimited trips" }
+    ]
+  },
+  "pricing": {
+    "title": "Everything is free.",
+    "desc": "No subscription, no API key required. Just create an account and go."
+  },
+  "cta": {
+    "line1": "Your next adventure",
+    "line2": "starts here.",
+    "desc": "Sign up in 30 seconds. Your first itinerary in under a minute.",
+    "button": "Start planning free →"
+  },
+  "footer": {
+    "tagline": "Wandr — plan less, explore more.",
+    "github": "GitHub",
+    "signIn": "Sign in"
+  }
+}

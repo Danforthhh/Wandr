@@ -1,0 +1,35 @@
+{
+  "categories": {
+    "documents": "Documents",
+    "clothing": "Clothing",
+    "toiletries": "Toiletries",
+    "electronics": "Electronics",
+    "healthSafety": "Health & Safety",
+    "activities": "Activities",
+    "miscellaneous": "Miscellaneous"
+  },
+  "empty": {
+    "title": "No packing list yet",
+    "desc": "AI will create a smart, categorized packing list tailored to your destination, activities, and trip duration.",
+    "generate": "Generate Packing List",
+    "noAiDesc": "Set up your Anthropic API key to generate a smart packing list with AI.",
+    "setup": "Set up AI in Settings"
+  },
+  "progress": {
+    "title": "Packing Progress",
+    "percent": "{{percent}}% packed",
+    "allPacked": "All packed! ✓",
+    "itemCount": "{{packed}} of {{total}} items packed"
+  },
+  "buttons": {
+    "packAll": "Pack all",
+    "unpackAll": "Unpack all",
+    "regenerate": "Regenerate"
+  },
+  "badges": {
+    "essential": "essential"
+  },
+  "alerts": {
+    "essentialUnpacked": "{{count}} essential item(s) not packed"
+  }
+}

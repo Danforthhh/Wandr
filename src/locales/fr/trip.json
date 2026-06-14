@@ -1,0 +1,103 @@
+{
+  "tabs": {
+    "overview": "Vue d'ensemble",
+    "itinerary": "Itinéraire",
+    "packing": "Bagages",
+    "map": "Carte",
+    "chat": "Chat IA",
+    "search": "Recherche"
+  },
+  "tooltips": {
+    "settings": "Paramètres API"
+  },
+  "overview": {
+    "about": "À propos de ce voyage",
+    "stats": {
+      "days": "Jours",
+      "activities": "Activités",
+      "itemsPacked": "Articles emballés",
+      "interests": "Centres d'intérêt"
+    },
+    "budget": {
+      "title": "Budget prévisionnel",
+      "noEstimates": "Pas encore d'estimations",
+      "over": "▲ {{currency}}{{amount}} dépassé",
+      "under": "▼ {{currency}}{{amount}} restant",
+      "allocated": "Alloué",
+      "estSpend": "Dépenses estimées",
+      "remaining": "Restant",
+      "hint": "Ajoutez des estimations de coût aux activités pour suivre vos dépenses.",
+      "perPerson": "{{currency}}{{amount}} /personne × {{count}} voyageur(s)"
+    },
+    "cards": {
+      "itinerary": {
+        "title": "Itinéraire",
+        "desc": "Voir et modifier jour par jour",
+        "withDays": "{{days}} jours planifiés"
+      },
+      "packing": {
+        "title": "Bagages",
+        "desc": "Voir la liste de voyage",
+        "withProgress": "{{packed}}/{{total}} emballés"
+      },
+      "chat": {
+        "title": "Chat IA",
+        "desc": "Posez n'importe quelle question sur votre voyage",
+        "locked": "Nécessite une clé Perplexity"
+      },
+      "search": {
+        "title": "Recherche",
+        "desc": "Vols, hôtels, météo en temps réel",
+        "locked": "Nécessite une clé Perplexity"
+      }
+    },
+    "deleteConfirm": "Supprimer \"{{name}}\" ? Cette action est irréversible."
+  },
+  "itinerary": {
+    "empty": {
+      "title": "Aucun itinéraire pour l'instant",
+      "desc": "L'IA créera un planning jour par jour personnalisé selon votre destination, vos centres d'intérêt et vos dates.",
+      "generate": "Générer l'itinéraire",
+      "noAiDesc": "Ajoutez des activités manuellement avec le bouton ci-dessous, ou configurez votre clé API Anthropic (Claude) pour en générer un avec l'IA.",
+      "setup": "Configurer l'IA dans les Paramètres"
+    },
+    "form": {
+      "time": "Heure",
+      "category": "Catégorie",
+      "activityName": "Nom de l'activité",
+      "activityPlaceholder": "ex. Visite de la Tour Eiffel",
+      "description": "Description",
+      "descPlaceholder": "Brève description…",
+      "cost": "Coût estimé par personne",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "budget": {
+      "title": "Budget prévisionnel",
+      "over": "▲ {{currency}} {{amount}} dépassé",
+      "under": "▼ {{currency}} {{amount}} restant",
+      "based": "Basé sur {{count}} activités avec estimations × {{travelers}} voyageur(s)"
+    },
+    "buttons": {
+      "regen": "Régén.",
+      "addActivity": "Ajouter une activité",
+      "regenerate": "Régénérer l'itinéraire",
+      "setupRegen": "Configurez une clé Claude pour régénérer"
+    },
+    "categories": {
+      "accommodation": "Hébergement",
+      "transport": "Transport",
+      "food": "Restauration",
+      "activity": "Activité",
+      "sightseeing": "Tourisme",
+      "free": "Temps libre"
+    }
+  },
+  "activity": {
+    "title": "Activité",
+    "running": "{{count}} en cours",
+    "events": "{{count}} événements",
+    "clearLog": "Effacer le journal",
+    "empty": "Aucune activité pour l'instant. Commencez par créer un voyage ou générer du contenu."
+  }
+}

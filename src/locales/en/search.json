@@ -1,0 +1,27 @@
+{
+  "locked": {
+    "title": "Travel Search unavailable",
+    "desc": "Add your Perplexity API key to search real-time travel info — flights, hotels, weather, events, and more for {{destination}}.",
+    "setup": "Set up in Settings"
+  },
+  "header": {
+    "title": "Live Travel Search",
+    "subtitle": "Real-time info for {{destination}} — powered by Perplexity Sonar"
+  },
+  "presets": [
+    { "label": "⛅ Weather",      "query": "Current weather forecast and what to pack" },
+    { "label": "✈️ Flights",      "query": "Current flight prices and booking recommendations" },
+    { "label": "🏨 Hotels",       "query": "Best hotels and accommodation options with current prices" },
+    { "label": "🎫 Events",       "query": "Events, festivals and activities happening during my trip" },
+    { "label": "🍴 Restaurants",  "query": "Best local restaurants and must-try dishes" },
+    { "label": "💡 Travel Tips",  "query": "Essential travel tips, visa requirements and local customs" }
+  ],
+  "search": {
+    "placeholder": "Search anything about {{destination}}…",
+    "loading": "Searching the web for real-time info…"
+  },
+  "results": {
+    "title": "Results",
+    "live": "Live"
+  }
+}

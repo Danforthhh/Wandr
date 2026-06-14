@@ -1,0 +1,123 @@
+{
+  "nav": {
+    "signIn": "Se connecter",
+    "planTrip": "Planifier un voyage →"
+  },
+  "badge": "Votre planificateur de voyages IA",
+  "hero": {
+    "line1": "Le monde",
+    "line2": "vous attend.",
+    "line3": "Allez l'explorer.",
+    "desc": "Dites à Wandr où vous souhaitez aller. Il s'occupe du reste — itinéraire complet, liste de voyage, carte interactive et un compagnon de voyage que vous pouvez interroger sur tout.",
+    "ctaPrimary": "Commencer à planifier — c'est gratuit",
+    "ctaSecondary": "Se connecter",
+    "disclaimer": "Pas de carte bancaire · Pas de configuration · Prêt en 60 secondes"
+  },
+  "destinations": {
+    "heading": "Destinations populaires",
+    "anywhere": "+ n'importe où ailleurs",
+    "list": [
+      { "flag": "🗼", "name": "Paris" },
+      { "flag": "🌸", "name": "Tokyo" },
+      { "flag": "🏝️", "name": "Bali" },
+      { "flag": "🗽", "name": "New York" },
+      { "flag": "🏛️", "name": "Rome" },
+      { "flag": "🌊", "name": "Santorini" },
+      { "flag": "🦁", "name": "Nairobi" },
+      { "flag": "🎭", "name": "Barcelona" },
+      { "flag": "🏔️", "name": "Queenstown" },
+      { "flag": "🌴", "name": "Tulum" },
+      { "flag": "🍜", "name": "Bangkok" },
+      { "flag": "🎑", "name": "Kyoto" }
+    ]
+  },
+  "howItWorks": {
+    "heading": "Comment ça marche",
+    "title1": "De l'idée au plan de voyage",
+    "title2": "en trois étapes.",
+    "steps": [
+      {
+        "num": "Étape 1",
+        "icon": "✍️",
+        "title": "Dites-nous où vous allez",
+        "desc": "Destination, dates, voyageurs, centres d'intérêt. 60 secondes suffisent."
+      },
+      {
+        "num": "Étape 2",
+        "icon": "✨",
+        "title": "L'IA construit tout votre voyage",
+        "desc": "Itinéraire, liste de voyage, budget — personnalisés pour vous, pas copiés d'un blog."
+      },
+      {
+        "num": "Étape 3",
+        "icon": "🌍",
+        "title": "Partez explorer",
+        "desc": "Ajustez à la volée, chattez avec l'IA, cherchez des infos en direct. Votre plan vous suit."
+      }
+    ]
+  },
+  "features": {
+    "heading": "Ce qui est inclus",
+    "title1": "Tout en un seul endroit.",
+    "title2": "Rien à deviner.",
+    "list": [
+      {
+        "icon": "🗓️",
+        "title": "Itinéraire jour par jour",
+        "desc": "Claude crée un planning complet autour de vos centres d'intérêt, votre rythme et votre budget — pas un modèle générique."
+      },
+      {
+        "icon": "🗺️",
+        "title": "Tout sur la carte",
+        "desc": "Chaque activité, restaurant et monument épinglé sur une carte interactive. Visualisez avant de partir."
+      },
+      {
+        "icon": "🧳",
+        "title": "Liste de voyage intelligente",
+        "desc": "Ce qu'il faut emporter pour une randonnée en Patagonie est très différent d'un week-end à Paris. Wandr le sait."
+      },
+      {
+        "icon": "💬",
+        "title": "Votre compagnon de voyage IA",
+        "desc": "Renseignez-vous sur les visas, les coutumes locales, la gastronomie, les heures creuses touristiques. Toute question."
+      },
+      {
+        "icon": "🔭",
+        "title": "Recherche en temps réel",
+        "desc": "Vols, hôtels et activités disponibles via Perplexity. Toujours à jour, jamais obsolète."
+      },
+      {
+        "icon": "📸",
+        "title": "Apportez votre inspiration",
+        "desc": "Téléchargez des photos, PDF ou notes. Wandr les analyse et construit votre plan autour de ce que vous aimez déjà."
+      }
+    ]
+  },
+  "included": {
+    "items": [
+      { "icon": "🗓️", "label": "Itinéraires IA" },
+      { "icon": "🧳", "label": "Listes de voyage" },
+      { "icon": "🗺️", "label": "Carte interactive" },
+      { "icon": "💬", "label": "Chat IA" },
+      { "icon": "🔭", "label": "Recherche en direct" },
+      { "icon": "📸", "label": "Téléchargement de fichiers" },
+      { "icon": "☁️", "label": "Sync cloud" },
+      { "icon": "♾️", "label": "Voyages illimités" }
+    ]
+  },
+  "pricing": {
+    "title": "Tout est gratuit.",
+    "desc": "Pas d'abonnement, pas de clé API requise. Créez simplement un compte et c'est parti."
+  },
+  "cta": {
+    "line1": "Votre prochaine aventure",
+    "line2": "commence ici.",
+    "desc": "Inscrivez-vous en 30 secondes. Votre premier itinéraire en moins d'une minute.",
+    "button": "Commencer gratuitement →"
+  },
+  "footer": {
+    "tagline": "Wandr — planifiez moins, explorez plus.",
+    "github": "GitHub",
+    "signIn": "Se connecter"
+  }
+}

@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './LanguageSwitcher'
+
 interface Props {
   onGetStarted: () => void
 }
@@ -16,74 +19,38 @@ const CompassLogo = ({ size = 32, color = '#f97316' }: { size?: number; color?: 
   </svg>
 )
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-const DESTINATIONS = [
-  { flag: '🗼', name: 'Paris' },
-  { flag: '🌸', name: 'Tokyo' },
-  { flag: '🏝️', name: 'Bali' },
-  { flag: '🗽', name: 'New York' },
-  { flag: '🏛️', name: 'Rome' },
-  { flag: '🌊', name: 'Santorini' },
-  { flag: '🦁', name: 'Nairobi' },
-  { flag: '🎭', name: 'Barcelona' },
-  { flag: '🏔️', name: 'Queenstown' },
-  { flag: '🌴', name: 'Tulum' },
-  { flag: '🍜', name: 'Bangkok' },
-  { flag: '🎑', name: 'Kyoto' },
-]
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface Destination {
+  flag: string
+  name: string
+}
 
-const FEATURES = [
-  {
-    icon: '🗓️',
-    title: 'Day-by-day itinerary',
-    desc: 'Claude crafts a full schedule around your interests, pace, and budget — not a generic template.',
-  },
-  {
-    icon: '🗺️',
-    title: 'Everything on the map',
-    desc: 'Every activity, restaurant, and landmark pinned on a live interactive map. Visualize before you go.',
-  },
-  {
-    icon: '🧳',
-    title: 'Smart packing list',
-    desc: 'What to bring for a hike through Patagonia is very different from a weekend in Paris. Wandr knows.',
-  },
-  {
-    icon: '💬',
-    title: 'Your AI travel companion',
-    desc: 'Ask about visa requirements, local customs, what to eat, when to avoid tourist crowds. Any question.',
-  },
-  {
-    icon: '🔭',
-    title: 'Real-time search',
-    desc: 'Live flight, hotel, and activity availability via Perplexity. Always current, never stale.',
-  },
-  {
-    icon: '📸',
-    title: 'Bring your inspiration',
-    desc: 'Upload photos, PDFs, or notes. Wandr reads them and builds your plan around what you already love.',
-  },
-]
+interface Step {
+  num: string
+  icon: string
+  title: string
+  desc: string
+}
 
-const STEPS = [
-  {
-    icon: '✍️',
-    title: 'Tell us where you\'re headed',
-    desc: 'Destination, dates, who you\'re with, what you love. Takes 60 seconds.',
-  },
-  {
-    icon: '✨',
-    title: 'AI builds your entire trip',
-    desc: 'Itinerary, packing list, budget breakdown — personalized to you, not copy-pasted from a blog.',
-  },
-  {
-    icon: '🌍',
-    title: 'Go explore',
-    desc: 'Adjust on the fly, chat with AI, search live info. Your plan travels with you.',
-  },
-]
+interface Feature {
+  icon: string
+  title: string
+  desc: string
+}
+
+interface IncludedItem {
+  icon: string
+  label: string
+}
 
 export default function LandingPage({ onGetStarted }: Props) {
+  const { t } = useTranslation('landing')
+
+  const destinations = t('destinations.list', { returnObjects: true }) as Destination[]
+  const steps = t('howItWorks.steps', { returnObjects: true }) as Step[]
+  const features = t('features.list', { returnObjects: true }) as Feature[]
+  const includedItems = t('included.items', { returnObjects: true }) as IncludedItem[]
+
   return (
     <div className="min-h-screen bg-[#0b0b10] text-white overflow-x-hidden">
 
@@ -95,17 +62,18 @@ export default function LandingPage({ onGetStarted }: Props) {
             <span className="text-sm font-bold tracking-tight text-white">Wandr</span>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <button
               onClick={onGetStarted}
               className="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer bg-transparent border-0"
             >
-              Sign in
+              {t('nav.signIn')}
             </button>
             <button
               onClick={onGetStarted}
               className="text-sm font-semibold px-4 py-1.5 bg-orange-500 hover:bg-orange-400 text-white rounded-full transition-colors cursor-pointer border-0"
             >
-              Plan a trip →
+              {t('nav.planTrip')}
             </button>
           </div>
         </div>
@@ -122,20 +90,19 @@ export default function LandingPage({ onGetStarted }: Props) {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 text-xs font-medium mb-8">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"/>
-              Your AI travel planner
+              {t('badge')}
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6">
-              The world<br/>
-              is waiting.{' '}
+              {t('hero.line1')}<br/>
+              {t('hero.line2')}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400">
-                Go explore it.
+                {t('hero.line3')}
               </span>
             </h1>
 
             <p className="text-lg text-stone-400 leading-relaxed mb-10 max-w-lg">
-              Tell Wandr where you want to go. It handles the rest — full itinerary,
-              packing list, interactive map, and a travel companion you can ask anything.
+              {t('hero.desc')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -143,16 +110,16 @@ export default function LandingPage({ onGetStarted }: Props) {
                 onClick={onGetStarted}
                 className="w-full sm:w-auto px-8 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-orange-900/30"
               >
-                Start planning — it's free
+                {t('hero.ctaPrimary')}
               </button>
               <button
                 onClick={onGetStarted}
                 className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/8 border border-white/10 text-white font-semibold rounded-xl transition-colors cursor-pointer text-base"
               >
-                Sign in
+                {t('hero.ctaSecondary')}
               </button>
             </div>
-            <p className="text-xs text-stone-600">No credit card · No setup · Works in 60 seconds</p>
+            <p className="text-xs text-stone-600">{t('hero.disclaimer')}</p>
           </div>
         </div>
       </section>
@@ -160,9 +127,9 @@ export default function LandingPage({ onGetStarted }: Props) {
       {/* ── Destination chips ─────────────────────────────────────────────── */}
       <section className="pb-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <p className="text-xs text-stone-600 uppercase tracking-widest mb-4 font-medium">Popular destinations</p>
+          <p className="text-xs text-stone-600 uppercase tracking-widest mb-4 font-medium">{t('destinations.heading')}</p>
           <div className="flex flex-wrap gap-2.5">
-            {DESTINATIONS.map(d => (
+            {destinations.map(d => (
               <button
                 key={d.name}
                 onClick={onGetStarted}
@@ -176,7 +143,7 @@ export default function LandingPage({ onGetStarted }: Props) {
               onClick={onGetStarted}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-sm text-orange-300 hover:text-orange-200 transition-all cursor-pointer"
             >
-              + anywhere else
+              {t('destinations.anywhere')}
             </button>
           </div>
         </div>
@@ -186,15 +153,15 @@ export default function LandingPage({ onGetStarted }: Props) {
       <section className="px-6 py-24 bg-[#0e0c09]">
         <div className="max-w-5xl mx-auto">
           <div className="mb-16">
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">How it works</p>
-            <h2 className="text-3xl font-bold">From idea to trip plan<br/>in three steps.</h2>
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">{t('howItWorks.heading')}</p>
+            <h2 className="text-3xl font-bold">{t('howItWorks.title1')}<br/>{t('howItWorks.title2')}</h2>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-px bg-white/[0.05] rounded-2xl overflow-hidden">
-            {STEPS.map((step, i) => (
+            {steps.map((step, i) => (
               <div key={i} className="bg-[#0e0c09] p-8 hover:bg-white/[0.02] transition-colors">
                 <div className="text-3xl mb-5">{step.icon}</div>
-                <div className="text-[10px] font-bold text-stone-600 uppercase tracking-widest mb-2">Step {i + 1}</div>
+                <div className="text-[10px] font-bold text-stone-600 uppercase tracking-widest mb-2">{step.num}</div>
                 <h3 className="font-semibold text-base mb-3 leading-snug">{step.title}</h3>
                 <p className="text-sm text-stone-400 leading-relaxed">{step.desc}</p>
               </div>
@@ -207,12 +174,12 @@ export default function LandingPage({ onGetStarted }: Props) {
       <section className="px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <div className="mb-16">
-            <p className="text-teal-400 text-sm font-semibold uppercase tracking-widest mb-3">What's included</p>
-            <h2 className="text-3xl font-bold">Everything in one place.<br/>Nothing left to figure out.</h2>
+            <p className="text-teal-400 text-sm font-semibold uppercase tracking-widest mb-3">{t('features.heading')}</p>
+            <h2 className="text-3xl font-bold">{t('features.title1')}<br/>{t('features.title2')}</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f, i) => (
+            {features.map((f, i) => (
               <div
                 key={i}
                 className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-orange-500/20 hover:bg-white/[0.05] transition-all group"
@@ -232,21 +199,12 @@ export default function LandingPage({ onGetStarted }: Props) {
           <div className="rounded-3xl border border-white/[0.07] overflow-hidden">
             {/* Top strip */}
             <div className="bg-gradient-to-r from-orange-500/20 via-amber-500/10 to-teal-500/10 px-8 py-5 border-b border-white/[0.06]">
-              <p className="text-sm font-semibold text-white">Everything is free.</p>
-              <p className="text-xs text-stone-400 mt-0.5">No subscription, no API key required. Just create an account and go.</p>
+              <p className="text-sm font-semibold text-white">{t('pricing.title')}</p>
+              <p className="text-xs text-stone-400 mt-0.5">{t('pricing.desc')}</p>
             </div>
             {/* Features grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-white/[0.05]">
-              {[
-                { icon: '🗓️', label: 'AI itineraries' },
-                { icon: '🧳', label: 'Packing lists' },
-                { icon: '🗺️', label: 'Interactive map' },
-                { icon: '💬', label: 'AI travel chat' },
-                { icon: '🔭', label: 'Live search' },
-                { icon: '📸', label: 'File upload' },
-                { icon: '☁️', label: 'Cloud sync' },
-                { icon: '♾️', label: 'Unlimited trips' },
-              ].map(item => (
+              {includedItems.map(item => (
                 <div key={item.label} className="px-6 py-5 flex items-center gap-3">
                   <span className="text-xl">{item.icon}</span>
                   <span className="text-sm text-stone-300">{item.label}</span>
@@ -268,16 +226,16 @@ export default function LandingPage({ onGetStarted }: Props) {
             <div className="relative">
               <CompassLogo size={44} color="#fb923c"/>
               <h2 className="text-3xl font-extrabold mt-6 mb-3 leading-tight">
-                Your next adventure<br/>starts here.
+                {t('cta.line1')}<br/>{t('cta.line2')}
               </h2>
               <p className="text-stone-400 text-sm mb-8 max-w-sm mx-auto">
-                Sign up in 30 seconds. Your first itinerary in under a minute.
+                {t('cta.desc')}
               </p>
               <button
                 onClick={onGetStarted}
                 className="px-10 py-3.5 bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl transition-colors cursor-pointer border-0 text-base shadow-lg shadow-orange-900/30"
               >
-                Start planning free →
+                {t('cta.button')}
               </button>
             </div>
           </div>
@@ -289,7 +247,7 @@ export default function LandingPage({ onGetStarted }: Props) {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <CompassLogo size={20}/>
-            <span className="text-sm text-stone-500">Wandr — plan less, explore more.</span>
+            <span className="text-sm text-stone-500">{t('footer.tagline')}</span>
           </div>
           <div className="flex items-center gap-5 text-xs text-stone-600">
             <a
@@ -298,13 +256,13 @@ export default function LandingPage({ onGetStarted }: Props) {
               rel="noopener noreferrer"
               className="hover:text-stone-300 transition-colors"
             >
-              GitHub
+              {t('footer.github')}
             </a>
             <button
               onClick={onGetStarted}
               className="hover:text-stone-300 transition-colors cursor-pointer bg-transparent border-0 text-xs text-stone-600"
             >
-              Sign in
+              {t('footer.signIn')}
             </button>
           </div>
         </div>

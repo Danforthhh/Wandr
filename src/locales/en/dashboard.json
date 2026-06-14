@@ -1,0 +1,30 @@
+{
+  "header": {
+    "title": "Your Trips",
+    "subtitle": "Plan and explore the world with AI"
+  },
+  "buttons": {
+    "newTrip": "New Trip"
+  },
+  "tabs": {
+    "upcoming": "Upcoming & Planning",
+    "completed": "Completed"
+  },
+  "status": {
+    "planning": "Planning",
+    "upcoming": "Upcoming",
+    "completed": "Completed"
+  },
+  "empty": {
+    "title": "No trips yet",
+    "desc": "Create your first trip and let AI build a personalized itinerary, packing list, and travel guide.",
+    "cta": "Plan your first trip"
+  },
+  "apiWarning": {
+    "message": "AI features are disabled — add your Claude + Perplexity API keys in Settings to generate itineraries, packing lists, and use AI chat.",
+    "setup": "Set up"
+  },
+  "tooltips": {
+    "settings": "API Settings"
+  }
+}

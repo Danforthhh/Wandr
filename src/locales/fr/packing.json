@@ -1,0 +1,35 @@
+{
+  "categories": {
+    "documents": "Documents",
+    "clothing": "Vêtements",
+    "toiletries": "Toilette",
+    "electronics": "Électronique",
+    "healthSafety": "Santé & Sécurité",
+    "activities": "Activités",
+    "miscellaneous": "Divers"
+  },
+  "empty": {
+    "title": "Aucune liste de voyage pour l'instant",
+    "desc": "L'IA créera une liste de voyage intelligente et catégorisée adaptée à votre destination, vos activités et la durée de votre voyage.",
+    "generate": "Générer la liste de voyage",
+    "noAiDesc": "Configurez votre clé API Anthropic pour générer une liste de voyage intelligente avec l'IA.",
+    "setup": "Configurer l'IA dans les Paramètres"
+  },
+  "progress": {
+    "title": "Progression des bagages",
+    "percent": "{{percent}}% emballé",
+    "allPacked": "Tout est emballé ! ✓",
+    "itemCount": "{{packed}} sur {{total}} articles emballés"
+  },
+  "buttons": {
+    "packAll": "Tout emballer",
+    "unpackAll": "Tout déballer",
+    "regenerate": "Régénérer"
+  },
+  "badges": {
+    "essential": "essentiel"
+  },
+  "alerts": {
+    "essentialUnpacked": "{{count}} article(s) essentiel(s) non emballé(s)"
+  }
+}

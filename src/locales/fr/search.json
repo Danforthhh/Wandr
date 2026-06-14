@@ -1,0 +1,27 @@
+{
+  "locked": {
+    "title": "Recherche de voyage indisponible",
+    "desc": "Ajoutez votre clé API Perplexity pour rechercher des informations de voyage en temps réel — vols, hôtels, météo, événements et plus pour {{destination}}.",
+    "setup": "Configurer dans les Paramètres"
+  },
+  "header": {
+    "title": "Recherche de voyage en direct",
+    "subtitle": "Informations en temps réel pour {{destination}} — propulsé par Perplexity Sonar"
+  },
+  "presets": [
+    { "label": "⛅ Météo",          "query": "Prévisions météo actuelles et quoi emporter" },
+    { "label": "✈️ Vols",           "query": "Prix des vols actuels et recommandations de réservation" },
+    { "label": "🏨 Hôtels",         "query": "Meilleurs hôtels et hébergements avec prix actuels" },
+    { "label": "🎫 Événements",     "query": "Événements, festivals et activités pendant mon voyage" },
+    { "label": "🍴 Restaurants",    "query": "Meilleurs restaurants locaux et plats incontournables" },
+    { "label": "💡 Conseils voyage","query": "Conseils de voyage essentiels, conditions de visa et coutumes locales" }
+  ],
+  "search": {
+    "placeholder": "Recherchez n'importe quoi sur {{destination}}…",
+    "loading": "Recherche d'informations en temps réel sur le web…"
+  },
+  "results": {
+    "title": "Résultats",
+    "live": "En direct"
+  }
+}

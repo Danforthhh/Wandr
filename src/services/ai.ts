@@ -1,6 +1,7 @@
 import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '../types';
 import { logActivity } from './activityLog';
 import { logger } from './logger';
+import i18n from '../i18n';
 
 // ─── API key store (set by App.tsx after decryption) ─────────────────────────
 let _claudeKey: string | null = null;
@@ -274,6 +275,9 @@ export async function generateTripDetails(params: {
 
   const actId = logActivity({ message: `Creating trip to ${destination}…`, status: 'pending' });
 
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const langInstruction = lang === 'fr' ? ' Generate all text content values in French, but keep JSON property names in English.' : '';
+
   const prompt = `Trip to ${destination} (${startDate} → ${endDate}).
 Interests: ${interests.join(', ')}. Budget: $${budget}. Travelers: ${travelers}.
 
@@ -288,7 +292,7 @@ Fill in this JSON exactly (no other text):
   try {
     const text = await callGeneration(
       prompt,
-      'You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation. Raw JSON only.',
+      `You are a travel expert. Respond with ONLY a valid JSON object — no markdown, no code fences, no explanation. Raw JSON only.${langInstruction}`,
       context,
       { maxTokens: 512 }
     );
@@ -319,6 +323,9 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
 
   const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
 
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const langInstruction = lang === 'fr' ? ' Generate all text content values in French, but keep JSON property names in English.' : '';
+
   const prompt = `Create a ${days}-day itinerary for ${trip.destination}.
 Dates: ${dates.join(', ')}. Interests: ${trip.interests.join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).${notesLine}
@@ -332,7 +339,7 @@ Exactly 4 activities per day. Include accurate GPS coordinates (lat/lng) for eac
   try {
     const text = await callGeneration(
       prompt,
-      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
+      `Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.${langInstruction}`,
       undefined,
       { maxTokens: 8192 }
     );
@@ -369,6 +376,11 @@ export async function generatePackingList(trip: Trip): Promise<PackingItem[]> {
 
   const notesLine = trip.notes ? `\nAdditional context: ${trip.notes}` : '';
 
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const langInstruction = lang === 'fr'
+    ? ' Generate item name values in French, but keep JSON property names in English. Keep category field values in English: Documents, Clothing, Toiletries, Electronics, Health & Safety, Activities, Miscellaneous.'
+    : '';
+
   const prompt = `Packing list for ${days}-day trip to ${trip.destination}.
 Activities: ${trip.interests.join(', ')}. Travelers: ${trip.travelers}.${notesLine}
 
@@ -379,7 +391,7 @@ Mark passport, medications as essential:true. Others essential:false.`;
   try {
     const text = await callGeneration(
       prompt,
-      'Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.',
+      `Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.${langInstruction}`,
       undefined,
       { maxTokens: 3000 }
     );
@@ -405,9 +417,10 @@ export async function chatAboutTrip(
 
   const notesLine = trip.notes ? `\nTrip notes: ${trip.notes}` : '';
 
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
   const system = `You are a travel assistant for a trip to ${trip.destination} (${trip.startDate} → ${trip.endDate}).
 ${trip.travelers} traveler(s). Budget: ${trip.currency}${trip.budget}. Interests: ${trip.interests.join(', ')}.${notesLine}
-Be concise and specific. 2-4 sentences per answer.`;
+Be concise and specific. 2-4 sentences per answer. Respond in ${lang === 'fr' ? 'French' : 'English'}.`;
 
   try {
     let result: string;
@@ -443,7 +456,8 @@ Be concise and specific. 2-4 sentences per answer.`;
 export async function searchTravel(query: string, trip: Trip): Promise<string> {
   const actId = logActivity({ message: 'Searching travel info…', status: 'pending' });
 
-  const system = `You are a real-time travel search assistant. The user is planning a trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate} with ${trip.travelers} traveler(s), budget ${trip.currency}${trip.budget}. Provide up-to-date, specific answers using web search. Be concise but thorough. Use clear sections when listing multiple items.`;
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const system = `You are a real-time travel search assistant. The user is planning a trip to ${trip.destination} from ${trip.startDate} to ${trip.endDate} with ${trip.travelers} traveler(s), budget ${trip.currency}${trip.budget}. Provide up-to-date, specific answers using web search. Be concise but thorough. Use clear sections when listing multiple items. Respond in ${lang === 'fr' ? 'French' : 'English'}.`;
 
   try {
     const result = await callPerplexity(

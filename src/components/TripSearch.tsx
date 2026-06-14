@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Loader2, Lock, Settings } from 'lucide-react';
 import { Trip } from '../types';
 import { searchTravel } from '../services/ai';
@@ -9,16 +10,9 @@ interface Props {
   onSettingsClick: () => void;
 }
 
-const PRESETS = [
-  { label: '⛅ Weather',      query: 'Current weather forecast and what to pack' },
-  { label: '✈️ Flights',      query: 'Current flight prices and booking recommendations' },
-  { label: '🏨 Hotels',       query: 'Best hotels and accommodation options with current prices' },
-  { label: '🎫 Events',       query: 'Events, festivals and activities happening during my trip' },
-  { label: '🍴 Restaurants',  query: 'Best local restaurants and must-try dishes' },
-  { label: '💡 Travel Tips',  query: 'Essential travel tips, visa requirements and local customs' },
-];
-
 export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Props) {
+  const { t } = useTranslation('search');
+  const PRESETS = t('presets', { returnObjects: true }) as Array<{ label: string; query: string }>;
   const [query, setQuery] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,17 +42,16 @@ export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Prop
         <div className="w-16 h-16 bg-gray-800 border border-gray-700 rounded-2xl flex items-center justify-center mb-5">
           <Lock className="w-7 h-7 text-gray-500" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-400 mb-2">Travel Search unavailable</h3>
+        <h3 className="text-lg font-semibold text-gray-400 mb-2">{t('locked.title')}</h3>
         <p className="text-gray-600 max-w-sm mb-6 leading-relaxed text-sm">
-          Add your Perplexity API key to search real-time travel info — flights, hotels, weather,
-          events, and more for {trip.destination}.
+          {t('locked.desc', { destination: trip.destination })}
         </p>
         <button
           onClick={onSettingsClick}
           className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm text-gray-300 transition"
         >
           <Settings className="w-4 h-4" />
-          Set up in Settings
+          {t('locked.setup')}
         </button>
       </div>
     );
@@ -69,9 +62,9 @@ export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Prop
 
       {/* Header */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-        <h3 className="font-semibold text-gray-200 mb-1">Live Travel Search</h3>
+        <h3 className="font-semibold text-gray-200 mb-1">{t('header.title')}</h3>
         <p className="text-sm text-gray-500">
-          Real-time info for <span className="text-gray-300">{trip.destination}</span> — powered by Perplexity Sonar
+          {t('header.subtitle', { destination: trip.destination })}
         </p>
       </div>
 
@@ -101,7 +94,7 @@ export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Prop
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder={`Search anything about ${trip.destination}…`}
+          placeholder={t('search.placeholder', { destination: trip.destination })}
           disabled={loading}
           className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition disabled:opacity-50 text-sm"
         />
@@ -128,7 +121,7 @@ export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Prop
       {loading && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-          <p className="text-sm text-gray-500">Searching the web for real-time info…</p>
+          <p className="text-sm text-gray-500">{t('search.loading')}</p>
         </div>
       )}
 
@@ -139,9 +132,9 @@ export default function TripSearch({ trip, hasSearchKey, onSettingsClick }: Prop
             <div className="w-6 h-6 bg-indigo-500/20 rounded-lg flex items-center justify-center">
               <Search className="w-3.5 h-3.5 text-indigo-400" />
             </div>
-            <span className="text-sm font-medium text-gray-300">Results</span>
+            <span className="text-sm font-medium text-gray-300">{t('results.title')}</span>
             <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ml-auto">
-              Live
+              {t('results.live')}
             </span>
           </div>
           <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
