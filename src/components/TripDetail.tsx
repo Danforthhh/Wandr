@@ -18,10 +18,12 @@ import PackingList from './PackingList';
 import AIChat from './AIChat';
 import TripMap from './TripMap';
 import TripSearch from './TripSearch';
+import TripDocuments from './TripDocuments';
 import LanguageSwitcher from './LanguageSwitcher';
 
 interface Props {
   trip: Trip;
+  uid: string;
   activeTab: DetailTab;
   onTabChange: (tab: DetailTab) => void;
   onBack: () => void;
@@ -47,7 +49,7 @@ const STATUS_STYLE: Record<Trip['status'], string> = {
 };
 
 export default function TripDetail({
-  trip, activeTab, onTabChange, onBack, onDelete,
+  trip, uid, activeTab, onTabChange, onBack, onDelete,
   onGenerateItinerary, onGeneratePackingList, onUpdateTrip,
   getChatHistory, saveChatHistory,
   hasGenerationKey, hasSearchKey, onSettingsClick,
@@ -90,12 +92,13 @@ export default function TripDetail({
   const noAnyKey          = !hasGenerationKey && !hasSearchKey;
 
   const TABS: { id: DetailTab; label: string; emoji: string; searchOnly?: boolean }[] = [
-    { id: 'overview',  label: t('tabs.overview'),   emoji: '🏠' },
-    { id: 'itinerary', label: t('tabs.itinerary'),  emoji: '🗺️' },
-    { id: 'packing',   label: t('tabs.packing'),    emoji: '🧳' },
-    { id: 'map',       label: t('tabs.map'),        emoji: '📍' },
-    { id: 'chat',      label: t('tabs.chat'),       emoji: '💬', searchOnly: true },
-    { id: 'search',    label: t('tabs.search'),     emoji: '🔍', searchOnly: true },
+    { id: 'overview',   label: t('tabs.overview'),   emoji: '🏠' },
+    { id: 'itinerary',  label: t('tabs.itinerary'),  emoji: '🗺️' },
+    { id: 'packing',    label: t('tabs.packing'),    emoji: '🧳' },
+    { id: 'documents',  label: t('tabs.documents'),  emoji: '📎' },
+    { id: 'map',        label: t('tabs.map'),        emoji: '📍' },
+    { id: 'chat',       label: t('tabs.chat'),       emoji: '💬', searchOnly: true },
+    { id: 'search',     label: t('tabs.search'),     emoji: '🔍', searchOnly: true },
   ];
 
   return (
@@ -357,6 +360,10 @@ export default function TripDetail({
 
         {activeTab === 'packing' && (
           <PackingList trip={trip} onGenerate={onGeneratePackingList} onUpdate={onUpdateTrip} hasAiKey={hasGenerationKey} onSettingsClick={onSettingsClick} />
+        )}
+
+        {activeTab === 'documents' && (
+          <TripDocuments trip={trip} uid={uid} onUpdate={onUpdateTrip} />
         )}
 
         {activeTab === 'map' && (

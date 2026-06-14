@@ -3,6 +3,7 @@
     "overview": "Overview",
     "itinerary": "Itinerary",
     "packing": "Packing",
+    "documents": "Documents",
     "map": "Map",
     "chat": "AI Chat",
     "search": "Search"
@@ -72,6 +73,8 @@
       "description": "Description",
       "descPlaceholder": "Brief description…",
       "cost": "Estimated cost per person",
+      "document": "Linked document",
+      "noDocument": "No document attached",
       "cancel": "Cancel",
       "save": "Save"
     },
@@ -107,6 +110,19 @@
       "free": "Free time",
       "reservation": "Reservation"
     }
+  },
+  "documents": {
+    "title": "My documents",
+    "upload": "Upload",
+    "empty": "No documents yet",
+    "emptyHint": "Flight tickets, hotel confirmations, booking vouchers…",
+    "open": "Open in new tab",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
+    "deleteError": "Could not delete the file.",
+    "uploadError": "Upload failed. Please try again.",
+    "tooLarge": "File too large (max 5 MB).",
+    "renameHint": "Click to rename"
   },
   "activity": {
     "title": "Activity",

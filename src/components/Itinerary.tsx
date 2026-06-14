@@ -5,7 +5,7 @@ import {
   Mic, MicOff, BookmarkCheck, Wand2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Trip, Activity, ItineraryDay } from '../types';
+import { Trip, Activity, ItineraryDay, TripDocument } from '../types';
 import { parseVoiceActivity } from '../services/ai';
 
 const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free', 'reservation'] as const;
@@ -38,9 +38,10 @@ interface EditFormProps {
   onChange: (v: Partial<Activity>) => void;
   onSave: () => void;
   onCancel: () => void;
+  documents?: TripDocument[];
 }
 
-function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) {
+function ActivityEditForm({ value, onChange, onSave, onCancel, documents }: EditFormProps) {
   const { t } = useTranslation('trip');
   const inputCls =
     'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition';
@@ -107,6 +108,22 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
           className={inputCls}
         />
       </div>
+
+      {documents && documents.length > 0 && (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">{t('itinerary.form.document')}</label>
+          <select
+            value={value.documentId ?? ''}
+            onChange={e => onChange({ ...value, documentId: e.target.value || undefined })}
+            className={inputCls}
+          >
+            <option value="">{t('itinerary.form.noDocument')}</option>
+            {documents.map(d => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-1">
         <button
@@ -615,6 +632,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                     onChange={setEditForm}
                     onSave={() => saveActivity(day.id)}
                     onCancel={() => { setEditingId(null); setEditForm({}); }}
+                    documents={trip.documents}
                   />
                 );
               }
@@ -666,6 +684,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                 onChange={setEditForm}
                 onSave={() => saveActivity(day.id)}
                 onCancel={() => { setEditingId(null); setEditForm({}); }}
+                documents={trip.documents}
               />
             )}
 

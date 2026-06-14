@@ -260,6 +260,7 @@ export default function App() {
       {view === 'detail' && selectedTrip && (
         <TripDetail
           trip={selectedTrip}
+          uid={user.uid}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onBack={() => setView('dashboard')}

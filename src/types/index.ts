@@ -52,6 +52,7 @@ export interface Trip {
   plannedStops?: TripStop[];
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
+  documents?: TripDocument[];
   status: TripStatus;
   coverGradient: string;
   createdAt: string;
@@ -65,6 +66,17 @@ export interface ItineraryDay {
   activities: Activity[];
 }
 
+export interface TripDocument {
+  id: string;
+  name: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+  activityId?: string;
+}
+
 export interface Activity {
   id: string;
   time: string;
@@ -72,6 +84,7 @@ export interface Activity {
   description: string;
   category: 'accommodation' | 'transport' | 'food' | 'activity' | 'sightseeing' | 'free' | 'reservation';
   estimatedCost: number;
+  documentId?: string;
   lat?: number;
   lng?: number;
 }
@@ -93,7 +106,7 @@ export interface ChatMessage {
 }
 
 export type View = 'dashboard' | 'wizard' | 'detail';
-export type DetailTab = 'overview' | 'itinerary' | 'packing' | 'chat' | 'map' | 'search';
+export type DetailTab = 'overview' | 'itinerary' | 'packing' | 'documents' | 'chat' | 'map' | 'search';
 
 export interface Session {
   uid: string;

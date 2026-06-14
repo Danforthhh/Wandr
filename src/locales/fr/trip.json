@@ -3,6 +3,7 @@
     "overview": "Vue d'ensemble",
     "itinerary": "Itinéraire",
     "packing": "Bagages",
+    "documents": "Documents",
     "map": "Carte",
     "chat": "Chat IA",
     "search": "Recherche"
@@ -72,6 +73,8 @@
       "description": "Description",
       "descPlaceholder": "Brève description…",
       "cost": "Coût estimé par personne",
+      "document": "Document lié",
+      "noDocument": "Aucun document attaché",
       "cancel": "Annuler",
       "save": "Enregistrer"
     },
@@ -107,6 +110,19 @@
       "free": "Temps libre",
       "reservation": "Réservation"
     }
+  },
+  "documents": {
+    "title": "Mes documents",
+    "upload": "Ajouter",
+    "empty": "Aucun document pour l'instant",
+    "emptyHint": "Billets d'avion, confirmations d'hôtel, bons de réservation…",
+    "open": "Ouvrir dans un nouvel onglet",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer \"{{name}}\" ? Cette action est irréversible.",
+    "deleteError": "Impossible de supprimer le fichier.",
+    "uploadError": "Erreur lors de l'envoi. Réessayez.",
+    "tooLarge": "Fichier trop volumineux (max 5 Mo).",
+    "renameHint": "Cliquer pour renommer"
   },
   "activity": {
     "title": "Activité",
