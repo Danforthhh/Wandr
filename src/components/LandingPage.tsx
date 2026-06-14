@@ -81,9 +81,15 @@ export default function LandingPage({ onGetStarted }: Props) {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative pt-20 pb-16 px-6 overflow-hidden">
-        {/* Warm glow orbs */}
-        <div className="absolute top-0 right-0 w-[700px] h-[500px] bg-orange-600/10 blur-[140px] rounded-full pointer-events-none"/>
-        <div className="absolute top-32 left-0 w-[400px] h-[300px] bg-teal-500/8 blur-[100px] rounded-full pointer-events-none"/>
+        {/* Hero photo — Santorini sunset */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1920&q=80&auto=format&fit=crop')" }}
+        />
+        {/* Dark gradient overlay: semi-transparent top → fully opaque bottom (blends into page bg) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0b10]/55 via-[#0b0b10]/70 to-[#0b0b10]" />
+        {/* Warm atmospheric tint on top of photo */}
+        <div className="absolute top-0 right-0 w-[700px] h-[500px] bg-orange-600/8 blur-[140px] rounded-full pointer-events-none"/>
 
         <div className="relative max-w-6xl mx-auto">
           <div className="max-w-2xl">

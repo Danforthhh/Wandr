@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Trip } from '../types';
 import { Plus, MapPin, Calendar, Users, Settings, Plane, Compass } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface Props {
   trips: Trip[];
@@ -70,7 +71,7 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
   const completed = trips.filter(trip => trip.status === 'completed');
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-950">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-950/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
@@ -85,6 +86,8 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
               </span>
             </div>
           </div>
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher />
           <button
             onClick={onSettingsClick}
             className="relative p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition"
@@ -96,8 +99,19 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
             )}
           </button>
+          </div>
         </div>
       </header>
+
+      {/* Travel photo banner */}
+      <div className="relative h-44 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=80&auto=format&fit=crop')" }}
+        />
+        {/* Fades top (semi-transparent) → bottom (merges with page bg) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-gray-950" />
+      </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-6 md:py-8">
         {/* Page header */}
