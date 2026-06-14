@@ -1,4 +1,4 @@
-import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile } from '../types';
+import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile, MustDo } from '../types';
 import { logActivity } from './activityLog';
 import { logger } from './logger';
 import i18n from '../i18n';
@@ -306,6 +306,39 @@ Fill in this JSON exactly (no other text):
   }
 }
 
+// ─── Must-dos extraction ──────────────────────────────────────────────────────
+
+export async function extractMustDos(notes: string, destination: string): Promise<MustDo[]> {
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const langInstruction = lang === 'fr'
+    ? ' Keep city names as the user wrote them. Return all item text in French.'
+    : ' Keep city names as the user wrote them.';
+
+  const prompt = `Parse this trip description and extract must-do activities organized by city.
+Destination: ${destination}
+Text: "${notes}"
+
+Return a JSON array. Each object: {"city":"City name","items":["Activity or place 1","Activity or place 2"]}
+Rules:
+- Only include places or activities EXPLICITLY mentioned by the user
+- Do NOT invent or suggest additional activities
+- Group by city/region as the user described them
+- If no specific activities are mentioned, return []`;
+
+  try {
+    const text = await callGeneration(
+      prompt,
+      `You are a travel planning assistant. Respond with ONLY a valid JSON array — no markdown, no code fences, no explanation. Raw JSON array only.${langInstruction}`,
+      undefined,
+      { maxTokens: 1024 }
+    );
+    const result = asArray<MustDo>(parseJSON<unknown>(text));
+    return result.filter(r => r && typeof r.city === 'string' && Array.isArray(r.items) && r.items.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 
 export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
@@ -324,21 +357,43 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryDay[]> {
   const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
   const langInstruction = lang === 'fr' ? ' Generate all text content values in French, but keep JSON property names in English.' : '';
 
-  const contextBlock = trip.notes
-    ? `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes}\n\n`
-    : '';
+  // Must-dos only mode: when user specified explicit activities, use those as the sole source
+  const mustDosBlock = trip.mustDos && trip.mustDos.length > 0
+    ? trip.mustDos.map(({ city, items }) => `${city}:\n${items.map(i => `  - ${i}`).join('\n')}`).join('\n\n')
+    : null;
 
-  const prompt = `${contextBlock}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
+  const contextLine = trip.notes ? `USER CONTEXT: ${trip.notes}\n\n` : '';
+
+  const prompt = mustDosBlock
+    ? `Create a ${days}-day itinerary for ${trip.destination}.
+${contextLine}Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
+Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
+
+INCLUDE ONLY THESE USER-SPECIFIED MUST-DO ACTIVITIES — nothing else:
+${mustDosBlock}
+
+STRICT RULES:
+- Schedule EXACTLY the activities listed above, assigned to the appropriate city and day
+- You MAY add transport (train, bus, car, flight) and accommodation check-in/check-out between must-dos
+- Do NOT add restaurants, sightseeing, or any activity not listed above
+- Distribute activities logically across days based on the city breakdown in context
+- Each day title format: "Jour N — City: Theme" (or "Day N — City: Theme" in English)
+
+Return a JSON array of exactly ${days} objects. Each object:
+{"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
+  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"sightseeing|activity|transport|accommodation","estimatedCost":0,"lat":0.0000,"lng":0.0000}
+]}`
+    : `USER CONTEXT (read carefully and use this to structure the entire itinerary):\n${trip.notes || ''}\n\nCreate a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
 Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
 
-IMPORTANT: If the user context above mentions specific cities or locations with a number of days (e.g. "5 days in Montreal, 3 days in Quebec City"), assign each day to the correct city and populate "location" accordingly. Every activity's lat/lng must be precise coordinates for that specific city.
+Assign each day to the correct city based on context. Include accurate GPS coordinates.
 
 Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
   {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0,"lat":0.0000,"lng":0.0000}
 ]}
-3–5 activities per day with realistic times spread across the day. Include accurate GPS coordinates for each specific location. Keep descriptions to 1 sentence.`;
+3–5 activities per day with realistic times. Include accurate GPS coordinates. Keep descriptions to 1 sentence.`;
 
   try {
     const text = await callGeneration(

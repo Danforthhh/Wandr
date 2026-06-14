@@ -14,6 +14,11 @@ export interface TripContext {
   files?: TripContextFile[];
 }
 
+export interface MustDo {
+  city: string;
+  items: string[];
+}
+
 export interface Trip {
   id: string;
   name: string;
@@ -28,6 +33,7 @@ export interface Trip {
   interests: string[];
   description: string;
   notes?: string;
+  mustDos?: MustDo[];
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
   status: TripStatus;

@@ -12,6 +12,9 @@
   },
   "overview": {
     "about": "About this trip",
+    "mustDos": {
+      "title": "🎯 Planned must-dos"
+    },
     "stats": {
       "days": "Days",
       "activities": "Activities",

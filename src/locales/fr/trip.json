@@ -12,6 +12,9 @@
   },
   "overview": {
     "about": "À propos de ce voyage",
+    "mustDos": {
+      "title": "🎯 Incontournables prévus"
+    },
     "stats": {
       "days": "Jours",
       "activities": "Activités",

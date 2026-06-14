@@ -9,7 +9,7 @@ import {
   getChats, saveChats,
   getEncryptedKey,
 } from './services/firestore';
-import { generateTripDetails, generateItinerary, generatePackingList, setApiKeys } from './services/ai';
+import { generateTripDetails, generateItinerary, generatePackingList, extractMustDos, setApiKeys } from './services/ai';
 import { getPersistedPassword, decryptApiKey, clearPersistedPassword } from './services/cryptoService';
 import AuthPage from './components/AuthPage';
 import LandingPage from './components/LandingPage';
@@ -119,9 +119,12 @@ export default function App() {
     interests: string[];
     context?: TripContext;
   }): Promise<Trip> => {
-    const details = await generateTripDetails({
-      ...params, context: params.context,
-    });
+    const [details, mustDos] = await Promise.all([
+      generateTripDetails({ ...params, context: params.context }),
+      params.context?.text
+        ? extractMustDos(params.context.text, params.destination).catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
     const trip: Trip = {
       id:            nanoid(),
@@ -138,6 +141,7 @@ export default function App() {
       currency:      params.currency,
       interests:     params.interests,
       notes:         params.context?.text || undefined,
+      mustDos:       mustDos.length > 0 ? mustDos : undefined,
       itinerary:     [],
       packingList:   [],
       status:        'planning',

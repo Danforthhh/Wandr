@@ -180,6 +180,31 @@ export default function TripDetail({
               <p className="text-gray-400 leading-relaxed text-sm md:text-base">{trip.description}</p>
             </div>
 
+            {/* Must-dos by city */}
+            {trip.mustDos && trip.mustDos.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 md:p-6">
+                <h3 className="font-semibold text-gray-200 mb-4">{t('overview.mustDos.title')}</h3>
+                <div className="space-y-5">
+                  {trip.mustDos.map(({ city, items }) => (
+                    <div key={city}>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <span className="text-indigo-400 text-sm">📍</span>
+                        <span className="text-sm font-semibold text-indigo-300">{city}</span>
+                      </div>
+                      <ul className="space-y-2 pl-5">
+                        {items.map(item => (
+                          <li key={item} className="flex items-start gap-2 text-sm text-gray-300">
+                            <span className="text-indigo-500/70 mt-1 shrink-0">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Stats grid */}
             <div className="grid grid-cols-1 gap-3">
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5 text-center">
