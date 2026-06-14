@@ -104,16 +104,16 @@ export default function Dashboard({ trips, onNewTrip, onSelectTrip, onSettingsCl
       </header>
 
       {/* Travel photo banner */}
-      <div className="relative h-44 overflow-hidden">
+      <div className="relative h-72 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-no-repeat"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=80&auto=format&fit=crop')",
-            backgroundPosition: 'center 65%',
-            filter: 'brightness(1.25) saturate(1.45)',
+            backgroundImage: "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80&auto=format&fit=crop')",
+            backgroundPosition: 'center 40%',
+            filter: 'brightness(1.15) saturate(1.35)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-gray-950" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-gray-950" />
       </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-6 md:py-8">

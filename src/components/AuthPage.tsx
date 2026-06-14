@@ -68,10 +68,10 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
-      {/* Travel photo background — Tokyo at dusk */}
+      {/* Travel photo background — Tokyo night skyline */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1920&q=80&auto=format&fit=crop')" }}
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1920&q=80&auto=format&fit=crop')" }}
       />
       <div className="absolute inset-0 bg-gray-950/80" />
       <div className="relative z-10 bg-gray-900/90 backdrop-blur-sm border border-gray-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
