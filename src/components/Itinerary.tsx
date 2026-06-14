@@ -1,9 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Loader2, Sparkles, Clock, MapPin, Utensils, Train, Bed,
   Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign, Lock, Settings,
   Mic, MicOff, BookmarkCheck, Wand2, Timer, ListChecks, AlertTriangle,
+  Backpack, ChevronDown, ChevronRight,
 } from 'lucide-react';
+
+const DEFAULT_PREP = ['Bouteille d\'eau', 'Lunettes de soleil', 'Argent / carte bancaire', 'Téléphone chargé'];
 import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay, TripDocument } from '../types';
 import { parseVoiceActivity, getVoiceSuggestion, VoiceParseResult } from '../services/ai';
@@ -205,6 +208,18 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   const [editForm, setEditForm]         = useState<Partial<Activity>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft]     = useState('');
+
+  // Daily prep state
+  const [prepChecked, setPrepChecked]   = useState<Set<string>>(new Set());
+  const [prepAddInput, setPrepAddInput] = useState('');
+  const [editingBase, setEditingBase]   = useState(false);
+  const [baseInput, setBaseInput]       = useState('');
+
+  useEffect(() => {
+    setPrepChecked(new Set());
+    setPrepAddInput('');
+    setEditingBase(false);
+  }, [selectedDay]);
 
   // Voice-to-activity state
   const [voiceOpen, setVoiceOpen]       = useState(false);
@@ -464,6 +479,27 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   const saveDayTitle = (dayId: string) => {
     if (titleDraft.trim()) updateDay(dayId, d => ({ ...d, title: titleDraft.trim() }));
     setEditingTitle(false);
+  };
+
+  // ── Daily prep helpers ────────────────────────────────────────────────────
+  const addExtraPrep = (dayId: string, item: string) => {
+    updateDay(dayId, d => ({ ...d, extraPrep: [...(d.extraPrep ?? []), item] }));
+  };
+
+  const removeExtraPrep = (dayId: string, item: string) => {
+    updateDay(dayId, d => ({ ...d, extraPrep: (d.extraPrep ?? []).filter(i => i !== item) }));
+  };
+
+  const updatePrepDefaults = (newDefaults: string[]) => {
+    onUpdate({ ...trip, prepDefaults: newDefaults });
+  };
+
+  const toggleCheck = (item: string) => {
+    setPrepChecked(prev => {
+      const next = new Set(prev);
+      next.has(item) ? next.delete(item) : next.add(item);
+      return next;
+    });
   };
 
   // ── Budget calcs ──────────────────────────────────────────────────────────
@@ -865,26 +901,113 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
             })()}
           </div>
 
-          {/* Day reminders summary */}
+          {/* ── Daily prep section ── */}
           {(() => {
-            const dayReminders = (day.activities ?? []).flatMap(a =>
-              (a.reminders ?? []).map(r => ({ r, title: a.title }))
+            const baseItems = trip.prepDefaults ?? DEFAULT_PREP;
+            const activityReminders = (day.activities ?? []).flatMap(a =>
+              (a.reminders ?? []).map(r => ({ r, actTitle: a.title }))
             );
-            if (dayReminders.length === 0) return null;
+            const extraItems = day.extraPrep ?? [];
+            const allItems: { key: string; label: string; sub?: string; removable?: boolean }[] = [
+              ...baseItems.map(item => ({ key: `base:${item}`, label: item })),
+              ...activityReminders.map(({ r, actTitle }) => ({ key: `act:${actTitle}:${r}`, label: r, sub: actTitle })),
+              ...extraItems.map(item => ({ key: `extra:${item}`, label: item, removable: true })),
+            ];
+
             return (
-              <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-xs font-semibold text-amber-300">{t('itinerary.dayReminders')}</span>
+              <div className="mb-4 bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-700/40">
+                  <div className="flex items-center gap-2">
+                    <Backpack className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-xs font-semibold text-gray-200">{t('itinerary.prep.title')}</span>
+                    {allItems.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        {prepChecked.size}/{allItems.length}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingBase(b => !b);
+                      if (!editingBase) setBaseInput(baseItems.join('\n'));
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-300 transition"
+                  >
+                    {editingBase ? t('itinerary.prep.done') : t('itinerary.prep.editBase')}
+                  </button>
                 </div>
-                <ul className="space-y-1">
-                  {dayReminders.map(({ r, title }, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-amber-200/80">
-                      <span className="text-amber-500 mt-0.5 shrink-0">•</span>
-                      <span>{r} <span className="text-amber-500/60">— {title}</span></span>
+
+                {/* Base editor */}
+                {editingBase && (
+                  <div className="px-3 py-2.5 border-b border-gray-700/40 bg-gray-900/50">
+                    <textarea
+                      value={baseInput}
+                      onChange={e => setBaseInput(e.target.value)}
+                      rows={4}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition resize-none"
+                      placeholder={t('itinerary.prep.basePlaceholder')}
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button onClick={() => setEditingBase(false)} className="text-xs text-gray-500 hover:text-gray-300 transition">{t('itinerary.form.cancel')}</button>
+                      <button
+                        onClick={() => {
+                          const lines = baseInput.split('\n').map(l => l.trim()).filter(Boolean);
+                          updatePrepDefaults(lines);
+                          setEditingBase(false);
+                        }}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition"
+                      >{t('itinerary.form.save')}</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Checklist */}
+                <ul className="divide-y divide-gray-700/30">
+                  {allItems.map(({ key, label, sub, removable }) => (
+                    <li key={key} className="flex items-center gap-2.5 px-3 py-1.5 group">
+                      <button
+                        onClick={() => toggleCheck(key)}
+                        className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition ${
+                          prepChecked.has(key)
+                            ? 'bg-indigo-500 border-indigo-500'
+                            : 'border-gray-600 hover:border-indigo-400'
+                        }`}
+                      >
+                        {prepChecked.has(key) && <Check className="w-2.5 h-2.5 text-white" />}
+                      </button>
+                      <span className={`flex-1 text-xs transition ${prepChecked.has(key) ? 'line-through text-gray-600' : 'text-gray-300'}`}>
+                        {label}
+                        {sub && <span className="ml-1.5 text-gray-600">— {sub}</span>}
+                      </span>
+                      {removable && (
+                        <button
+                          onClick={() => removeExtraPrep(day.id, label)}
+                          className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
+
+                {/* Quick add */}
+                <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700/40">
+                  <Plus className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                  <input
+                    value={prepAddInput}
+                    onChange={e => setPrepAddInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && prepAddInput.trim()) {
+                        addExtraPrep(day.id, prepAddInput.trim());
+                        setPrepAddInput('');
+                      }
+                    }}
+                    placeholder={t('itinerary.prep.addPlaceholder')}
+                    className="flex-1 bg-transparent text-xs text-gray-300 placeholder-gray-600 focus:outline-none"
+                  />
+                </div>
               </div>
             );
           })()}

@@ -50,6 +50,7 @@ export interface Trip {
   mustDos?: MustDo[];
   outboundFlight?: FlightInfo;
   plannedStops?: TripStop[];
+  prepDefaults?: string[];
   itinerary: ItineraryDay[];
   packingList: PackingItem[];
   documents?: TripDocument[];
@@ -64,6 +65,7 @@ export interface ItineraryDay {
   title: string;
   location?: string;
   activities: Activity[];
+  extraPrep?: string[];
 }
 
 export interface TripDocument {

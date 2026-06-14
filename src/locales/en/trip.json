@@ -83,6 +83,13 @@
       "save": "Save"
     },
     "dayReminders": "Don't forget today",
+    "prep": {
+      "title": "Today's essentials",
+      "editBase": "Edit defaults",
+      "done": "Done",
+      "addPlaceholder": "Add an item… (Enter)",
+      "basePlaceholder": "One item per line"
+    },
     "budget": {
       "title": "Provisional budget",
       "over": "▲ {{currency}} {{amount}} over",

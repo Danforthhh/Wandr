@@ -83,6 +83,13 @@
       "save": "Enregistrer"
     },
     "dayReminders": "À ne pas oublier aujourd'hui",
+    "prep": {
+      "title": "Préparation du jour",
+      "editBase": "Modifier les éléments communs",
+      "done": "Terminé",
+      "addPlaceholder": "Ajouter un élément… (Entrée)",
+      "basePlaceholder": "Un élément par ligne"
+    },
     "budget": {
       "title": "Budget prévisionnel",
       "over": "▲ {{currency}} {{amount}} dépassé",
