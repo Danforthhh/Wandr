@@ -108,7 +108,15 @@
       "whichDay": "Quel jour ?",
       "similarFound": "Activité similaire détectée",
       "enrichExisting": "Enrichir cette activité",
-      "addSeparate": "Ajouter comme nouvelle activité"
+      "addSeparate": "Ajouter comme nouvelle activité",
+      "noMatch": "Aucune activité correspondante trouvée — ajout en tant que nouvelle activité.",
+      "modeAdd": "Ajouter",
+      "modeAddDesc": "Nouvelle activité",
+      "modeEdit": "Modifier",
+      "modeEditDesc": "Activité existante",
+      "modeSuggest": "Suggestions",
+      "modeSuggestDesc": "Améliorer mon séjour",
+      "suggestionResult": "Suggestions IA"
     },
     "categories": {
       "accommodation": "Hébergement",

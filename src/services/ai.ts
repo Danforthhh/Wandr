@@ -551,6 +551,28 @@ export async function searchTravel(query: string, trip: Trip): Promise<string> {
 
 // ─── Voice → Activity ─────────────────────────────────────────────────────────
 
+export async function getVoiceSuggestion(transcript: string, trip: Trip): Promise<string> {
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const itineraryText = trip.itinerary.map(d =>
+    `${d.date} — ${d.title}: ${d.activities.map(a => `${a.time} ${a.title}`).join(', ')}`
+  ).join('\n');
+
+  const prompt = `Trip: ${trip.destination}, ${trip.startDate} → ${trip.endDate}, ${trip.travelers} traveler(s).
+Current itinerary:
+${itineraryText || 'No itinerary yet.'}
+
+User voice request: "${transcript}"
+
+Give specific, actionable suggestions to improve or complement the itinerary based on the user's request. Be concise (max 5 suggestions). Respond in ${lang === 'fr' ? 'French' : 'English'}.`;
+
+  return callGeneration(
+    prompt,
+    `You are an expert travel advisor. Give practical itinerary improvement suggestions. Be specific and brief.`,
+    undefined,
+    { maxTokens: 600 }
+  );
+}
+
 export type VoiceParseResult =
   | { dayDate: string; candidateDates?: never; activity: Partial<Activity> }
   | { dayDate?: never; candidateDates: string[]; activity: Partial<Activity> };

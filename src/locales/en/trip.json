@@ -108,7 +108,15 @@
       "whichDay": "Which day?",
       "similarFound": "Similar activity found",
       "enrichExisting": "Update this activity",
-      "addSeparate": "Add as separate activity"
+      "addSeparate": "Add as separate activity",
+      "noMatch": "No matching activity found — adding as new.",
+      "modeAdd": "Add",
+      "modeAddDesc": "New activity",
+      "modeEdit": "Update",
+      "modeEditDesc": "Existing activity",
+      "modeSuggest": "Suggest",
+      "modeSuggestDesc": "Improve my trip",
+      "suggestionResult": "AI Suggestions"
     },
     "categories": {
       "accommodation": "Accommodation",

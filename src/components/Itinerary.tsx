@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay, TripDocument } from '../types';
-import { parseVoiceActivity, VoiceParseResult } from '../services/ai';
+import { parseVoiceActivity, getVoiceSuggestion, VoiceParseResult } from '../services/ai';
 
 const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free', 'reservation'] as const;
 
@@ -208,6 +208,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
 
   // Voice-to-activity state
   const [voiceOpen, setVoiceOpen]       = useState(false);
+  const [voiceMode, setVoiceMode]       = useState<'add' | 'edit' | 'suggest' | null>(null);
   const [isRecording, setIsRecording]   = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceInterim, setVoiceInterim] = useState('');
@@ -215,6 +216,7 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   const [voiceParsed, setVoiceParsed]   = useState<VoiceParseResult | null>(null);
   const [voiceCandidates, setVoiceCandidates] = useState<string[]>([]);
   const [voiceMergeTarget, setVoiceMergeTarget] = useState<Activity | null>(null);
+  const [voiceSuggestion, setVoiceSuggestion] = useState('');
   const [voiceError, setVoiceError]     = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -280,6 +282,23 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     return null;
   };
 
+  const findSimilarActivityAllDays = (candidate: Partial<Activity>): { dayDate: string; activity: Activity } | null => {
+    const stopWords = new Set(['le', 'la', 'les', 'de', 'du', 'au', 'à', 'un', 'une', 'the', 'a', 'an', 'at', 'in', 'to']);
+    const words = (s: string) => s.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w));
+    const newWords = words(candidate.title ?? '');
+    for (const day of trip.itinerary) {
+      for (const act of day.activities) {
+        const common = words(act.title).filter(w => newWords.includes(w));
+        if (common.length >= 2) return { dayDate: day.date, activity: act };
+        if (act.category === candidate.category && act.time && candidate.time) {
+          const toMin = (t2: string) => { const [h, m] = t2.split(':').map(Number); return h * 60 + m; };
+          if (Math.abs(toMin(act.time) - toMin(candidate.time)) <= 90) return { dayDate: day.date, activity: act };
+        }
+      }
+    }
+    return null;
+  };
+
   const handleVoiceParse = async () => {
     const text = (voiceTranscript + ' ' + voiceInterim).trim();
     if (!text) return;
@@ -287,12 +306,34 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
     setVoiceParsing(true);
     setVoiceError('');
     try {
+      if (voiceMode === 'suggest') {
+        const suggestion = await getVoiceSuggestion(text, trip);
+        setVoiceSuggestion(suggestion);
+        return;
+      }
       const result = await parseVoiceActivity(text, trip);
       if (!result) { setVoiceError(t('itinerary.voice.failed')); return; }
+
+      if (voiceMode === 'edit') {
+        // In edit mode: always look for a match across all days
+        const match = findSimilarActivityAllDays(result.activity);
+        if (match) {
+          setVoiceMergeTarget(match.activity);
+          setVoiceParsed({ dayDate: match.dayDate, activity: result.activity });
+        } else {
+          // No match: fall back to add-new with a note
+          setVoiceError(t('itinerary.voice.noMatch'));
+          setVoiceParsed(result);
+        }
+        return;
+      }
+
+      // 'add' mode: day disambiguation, but no forced similarity check
       if (result.candidateDates) {
         setVoiceParsed(result);
         setVoiceCandidates(result.candidateDates);
       } else {
+        // Still detect similarity in add mode, but it's optional
         const similar = findSimilarActivity(result.dayDate, result.activity);
         setVoiceMergeTarget(similar);
         setVoiceParsed(result);
@@ -369,11 +410,13 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   const resetVoice = () => {
     if (isRecording) stopRecording();
     setVoiceOpen(false);
+    setVoiceMode(null);
     setVoiceTranscript('');
     setVoiceInterim('');
     setVoiceParsed(null);
     setVoiceCandidates([]);
     setVoiceMergeTarget(null);
+    setVoiceSuggestion('');
     setVoiceError('');
     setVoiceParsing(false);
   };
@@ -477,17 +520,36 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
   return (
     <div className="space-y-4">
 
-      {/* ── Voice capture panel ── */}
+      {/* ── Voice mode selector ── */}
       {!voiceOpen ? (
-        <button
-          onClick={() => { setVoiceOpen(true); setVoiceTranscript(''); setVoiceParsed(null); setVoiceError(''); }}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-gray-700 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl text-sm text-gray-500 hover:text-indigo-400 transition"
-        >
-          <Mic className="w-4 h-4" />
-          {t('itinerary.voice.button')}
-        </button>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { mode: 'add'     as const, icon: Plus,     labelKey: 'voice.modeAdd',     descKey: 'voice.modeAddDesc',     color: 'hover:border-indigo-500/50 hover:bg-indigo-500/5 hover:text-indigo-400' },
+            { mode: 'edit'    as const, icon: Pencil,   labelKey: 'voice.modeEdit',    descKey: 'voice.modeEditDesc',    color: 'hover:border-amber-500/50 hover:bg-amber-500/5 hover:text-amber-400' },
+            { mode: 'suggest' as const, icon: Sparkles, labelKey: 'voice.modeSuggest', descKey: 'voice.modeSuggestDesc', color: 'hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:text-emerald-400' },
+          ]).map(({ mode, icon: Icon, labelKey, descKey, color }) => (
+            <button
+              key={mode}
+              onClick={() => { setVoiceMode(mode); setVoiceOpen(true); setVoiceTranscript(''); setVoiceParsed(null); setVoiceSuggestion(''); setVoiceError(''); }}
+              className={`flex flex-col items-center gap-1.5 py-3 px-2 border border-dashed border-gray-700 rounded-xl text-gray-500 transition ${color}`}
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4" />
+              <span className="text-xs font-medium text-center leading-tight">{t(`itinerary.${labelKey}`)}</span>
+              <span className="text-[10px] text-center leading-tight opacity-70 hidden sm:block">{t(`itinerary.${descKey}`)}</span>
+            </button>
+          ))}
+        </div>
       ) : (
         <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-5 space-y-4">
+          {/* Mode badge */}
+          {voiceMode && (
+            <div className="flex items-center gap-2">
+              {voiceMode === 'add'     && <><Plus     className="w-3.5 h-3.5 text-indigo-400" /><span className="text-xs font-medium text-indigo-400">{t('itinerary.voice.modeAdd')}</span></>}
+              {voiceMode === 'edit'    && <><Pencil   className="w-3.5 h-3.5 text-amber-400"  /><span className="text-xs font-medium text-amber-400" >{t('itinerary.voice.modeEdit')}</span></>}
+              {voiceMode === 'suggest' && <><Sparkles className="w-3.5 h-3.5 text-emerald-400"/><span className="text-xs font-medium text-emerald-400">{t('itinerary.voice.modeSuggest')}</span></>}
+            </div>
+          )}
           {voiceCandidates.length > 0 && voiceParsed ? (
             /* ── Step 1: Date disambiguation ── */
             <div className="space-y-3">
@@ -592,6 +654,22 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                   {t('itinerary.voice.cancel')}
                 </button>
               </div>
+            </div>
+          ) : voiceSuggestion ? (
+            /* ── Suggestion result ── */
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-emerald-400 uppercase tracking-wide">
+                {t('itinerary.voice.suggestionResult')}
+              </p>
+              <div className="bg-gray-800 rounded-xl p-4 text-sm text-gray-300 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
+                {voiceSuggestion}
+              </div>
+              <button
+                onClick={resetVoice}
+                className="w-full py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-xl transition"
+              >
+                {t('itinerary.voice.cancel')}
+              </button>
             </div>
           ) : voiceParsing ? (
             /* ── Analyzing ── */
