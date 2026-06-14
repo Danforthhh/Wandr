@@ -8,8 +8,10 @@ import {
   RefreshCw,
   Settings,
   Lock,
+  Pencil,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useState, useRef } from 'react';
 import { Trip, DetailTab, ChatMessage } from '../types';
 import Itinerary from './Itinerary';
 import PackingList from './PackingList';
@@ -51,6 +53,23 @@ export default function TripDetail({
   hasGenerationKey, hasSearchKey, onSettingsClick,
 }: Props) {
   const { t } = useTranslation('trip');
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(trip.name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const startNameEdit = () => {
+    setNameValue(trip.name);
+    setEditingName(true);
+    setTimeout(() => nameInputRef.current?.select(), 0);
+  };
+
+  const commitNameEdit = () => {
+    const trimmed = nameValue.trim();
+    if (trimmed && trimmed !== trip.name) onUpdateTrip({ ...trip, name: trimmed });
+    else setNameValue(trip.name);
+    setEditingName(false);
+  };
 
   const start = new Date(trip.startDate + 'T12:00:00');
   const end   = new Date(trip.endDate   + 'T12:00:00');
@@ -119,7 +138,22 @@ export default function TripDetail({
           <div className="flex items-start gap-3">
             <span className="text-4xl md:text-5xl drop-shadow-lg shrink-0 mt-0.5">{trip.emoji}</span>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">{trip.name}</h1>
+              {editingName ? (
+                <input
+                  ref={nameInputRef}
+                  value={nameValue}
+                  onChange={e => setNameValue(e.target.value)}
+                  onBlur={commitNameEdit}
+                  onKeyDown={e => { if (e.key === 'Enter') commitNameEdit(); if (e.key === 'Escape') { setEditingName(false); setNameValue(trip.name); } }}
+                  className="text-xl md:text-2xl font-bold text-white leading-tight bg-white/10 border border-white/30 rounded-lg px-2 py-0.5 w-full outline-none focus:border-white/60"
+                  autoFocus
+                />
+              ) : (
+                <button onClick={startNameEdit} className="group flex items-center gap-1.5 text-left">
+                  <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">{trip.name}</h1>
+                  <Pencil className="w-3.5 h-3.5 text-white/40 group-hover:text-white/80 shrink-0 mt-0.5 transition-colors" />
+                </button>
+              )}
               <div className="flex items-center gap-1.5 mt-0.5 text-white/70">
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-sm truncate">{trip.destination}</span>
