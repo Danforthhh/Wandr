@@ -604,13 +604,20 @@ ${datesContext}
 
 Voice input: "${transcript}"
 
-Parse this voice statement into a calendar activity. Rules:
+Parse this voice statement into a structured calendar activity. Extract each piece of information into its dedicated field — do NOT put duration or reminders in description.
+
+CATEGORY RULES:
 - "vol", "flight", "avion", "départ" → category: transport
 - "restaurant", "dîner", "déjeuner", "lunch", "dinner" → category: food
 - "réservé", "réservation", "booked" → category: reservation
 - "hôtel", "hébergement", "check-in", "check-out" → category: accommodation
 - "visite", "musée", "monument", "temple", "pagode" → category: sightseeing
 - Correct any place name typos (e.g. "Foucoque" → "Phố Cổ", "Sapare" → "Sapa")
+
+FIELD EXTRACTION RULES (critical — each value goes in its own field):
+- duration: extract any mention of how long the activity lasts. Examples: "deux heures" → "2h", "une heure trente" → "1h30", "toute la journée" → "journée entière". If no duration mentioned, omit.
+- reminders: extract ALL items to bring, buy, prepare, or not forget. Examples: "bouteille de vin rosé" → ["bouteille de vin rosé"], "maillot de bain et serviette" → ["maillot de bain", "serviette"], "acheter de la crème solaire" → ["crème solaire"]. Each item is a short noun phrase. If no reminders mentioned, use [].
+- description: ONLY a brief sentence about what the activity is. Do NOT include duration or reminders here.
 
 DAY MATCHING RULES (critical):
 - If the user mentions a specific date ("le 23", "June 23") or "jour 3" / "day 2" → resolve directly to dayDate
@@ -619,15 +626,15 @@ DAY MATCHING RULES (critical):
 - If day is completely unclear → use dayDate: "${fallbackDate}"
 
 Return ONLY one of these two JSON shapes (no markdown):
-Shape A (day is certain): {"dayDate":"YYYY-MM-DD","activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}
-Shape B (weekday ambiguous): {"candidateDates":["YYYY-MM-DD","YYYY-MM-DD"],"activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}`;
+Shape A (day is certain): {"dayDate":"YYYY-MM-DD","activity":{"time":"HH:MM","title":"Name","description":"One sentence about the activity only.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0,"duration":"Xh","reminders":["item1","item2"]}}
+Shape B (weekday ambiguous): {"candidateDates":["YYYY-MM-DD","YYYY-MM-DD"],"activity":{"time":"HH:MM","title":"Name","description":"One sentence about the activity only.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0,"duration":"Xh","reminders":["item1","item2"]}}`;
 
   try {
     const text = await callGeneration(
       prompt,
       `You are a travel assistant parsing voice commands into calendar events. Return ONLY valid JSON.${langInstruction}`,
       undefined,
-      { maxTokens: 350 }
+      { maxTokens: 500 }
     );
     const result = parseJSON<{ dayDate?: string; candidateDates?: string[]; activity: Partial<Activity> }>(text);
     if (!result?.activity?.title) return null;
