@@ -1,4 +1,4 @@
-import { Trip, ItineraryDay, PackingItem, TripContext, TripContextFile, MustDo } from '../types';
+import { Trip, Activity, ItineraryDay, PackingItem, TripContext, TripContextFile, MustDo } from '../types';
 import { logActivity } from './activityLog';
 import { logger } from './logger';
 import i18n from '../i18n';
@@ -323,7 +323,11 @@ Rules:
 - Only include places or activities EXPLICITLY mentioned by the user
 - Do NOT invent or suggest additional activities
 - Group by city/region as the user described them
-- If no specific activities are mentioned, return []`;
+- If no specific activities are mentioned, return []
+- Prefix each item with a realistic time-of-day indicator when relevant, separated by " : "
+  Examples: "Matin : Marché de Dong Xuan", "Demi-journée : Visite du temple", "Soirée : Balade dans le Vieux Quartier", "Journée : Excursion baie d'Ha Long"
+  Use "Demi-journée", "Matin", "Après-midi", "Soirée", "Journée" or a duration like "2h"
+- Correct any obvious city or place name typos (e.g. "Foucoque" → "Phố Cổ", "Sapare" → "Sapa")`;
 
   try {
     const text = await callGeneration(
@@ -540,5 +544,64 @@ export async function searchTravel(query: string, trip: Trip): Promise<string> {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     logActivity({ message: 'Search failed', detail: msg, status: 'error' }, actId);
     throw e;
+  }
+}
+
+// ─── Voice → Activity ─────────────────────────────────────────────────────────
+
+export async function parseVoiceActivity(
+  transcript: string,
+  trip: Trip,
+): Promise<{ dayDate: string; activity: Partial<Activity> } | null> {
+  if (!transcript.trim()) return null;
+
+  const lang = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+  const langInstruction = lang === 'fr'
+    ? ' All title/description values in French.'
+    : ' All title/description values in English.';
+
+  const datesContext = trip.itinerary.length > 0
+    ? trip.itinerary.map((d, i) => {
+        const dateObj = new Date(d.date + 'T12:00:00');
+        const weekday = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+        return `Day ${i + 1} (${d.date}, ${weekday}): ${d.location ?? d.title}`;
+      }).join('\n')
+    : `Trip from ${trip.startDate} to ${trip.endDate}`;
+
+  const fallbackDate = trip.itinerary[0]?.date ?? trip.startDate;
+
+  const prompt = `Trip to ${trip.destination} (${trip.startDate} → ${trip.endDate}).
+Itinerary days:
+${datesContext}
+
+Voice input: "${transcript}"
+
+Parse this voice statement into a calendar activity. Rules:
+- Match "mardi 23", "le 23", "jour 3", "day 1" to the closest date from the itinerary
+- "vol", "flight", "avion", "départ" → category: transport
+- "restaurant", "dîner", "déjeuner", "lunch", "dinner" → category: food
+- "réservé", "réservation", "booked" → category: reservation
+- "hôtel", "hébergement", "check-in", "check-out" → category: accommodation
+- "visite", "musée", "monument", "temple", "pagode" → category: sightseeing
+- Correct any place name typos (e.g. "Foucoque" → "Phố Cổ", "Sapare" → "Sapa")
+- If day is unclear, use ${fallbackDate}
+
+Return ONLY this JSON (no markdown):
+{"dayDate":"YYYY-MM-DD","activity":{"time":"HH:MM","title":"Name","description":"One sentence.","category":"food|transport|sightseeing|activity|accommodation|free|reservation","estimatedCost":0}}`;
+
+  try {
+    const text = await callGeneration(
+      prompt,
+      `You are a travel assistant parsing voice commands into calendar events. Return ONLY valid JSON.${langInstruction}`,
+      undefined,
+      { maxTokens: 300 }
+    );
+    const result = parseJSON<{ dayDate: string; activity: Partial<Activity> }>(text);
+    if (!result?.dayDate || !result?.activity?.title) return null;
+    const validDates = trip.itinerary.map(d => d.date);
+    const snapped = validDates.includes(result.dayDate) ? result.dayDate : fallbackDate;
+    return { dayDate: snapped, activity: result.activity };
+  } catch {
+    return null;
   }
 }

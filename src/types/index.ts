@@ -70,7 +70,7 @@ export interface Activity {
   time: string;
   title: string;
   description: string;
-  category: 'accommodation' | 'transport' | 'food' | 'activity' | 'sightseeing' | 'free';
+  category: 'accommodation' | 'transport' | 'food' | 'activity' | 'sightseeing' | 'free' | 'reservation';
   estimatedCost: number;
   lat?: number;
   lng?: number;

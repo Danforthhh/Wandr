@@ -87,13 +87,25 @@
       "regenerate": "Regenerate itinerary",
       "setupRegen": "Set up Claude key to regenerate"
     },
+    "voice": {
+      "button": "Add via microphone",
+      "tapStart": "Tap to speak",
+      "tapStop": "Tap to stop",
+      "analyzing": "Analysing your command…",
+      "preview": "Activity detected",
+      "addToDay": "Add to itinerary",
+      "cancel": "Cancel",
+      "failed": "Could not parse the voice command. Please try again.",
+      "unsupported": "Microphone not available — use Chrome or Edge."
+    },
     "categories": {
       "accommodation": "Accommodation",
       "transport": "Transport",
       "food": "Food",
       "activity": "Activity",
       "sightseeing": "Sightseeing",
-      "free": "Free time"
+      "free": "Free time",
+      "reservation": "Reservation"
     }
   },
   "activity": {

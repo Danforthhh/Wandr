@@ -1,20 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Loader2, Sparkles, Clock, MapPin, Utensils, Train, Bed,
   Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign, Lock, Settings,
+  Mic, MicOff, BookmarkCheck, Wand2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay } from '../types';
+import { parseVoiceActivity } from '../services/ai';
 
-const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free'] as const;
+const CATEGORIES = ['accommodation', 'transport', 'food', 'activity', 'sightseeing', 'free', 'reservation'] as const;
 
 const CATEGORY_STYLE: Record<Activity['category'], { Icon: React.ElementType; cls: string }> = {
-  accommodation: { Icon: Bed,      cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-  transport:     { Icon: Train,    cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-  food:          { Icon: Utensils, cls: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-  activity:      { Icon: Star,     cls: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
-  sightseeing:   { Icon: MapPin,   cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  free:          { Icon: Coffee,   cls: 'text-gray-400 bg-gray-500/10 border-gray-700' },
+  accommodation: { Icon: Bed,           cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+  transport:     { Icon: Train,         cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  food:          { Icon: Utensils,      cls: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+  activity:      { Icon: Star,          cls: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+  sightseeing:   { Icon: MapPin,        cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+  free:          { Icon: Coffee,        cls: 'text-gray-400 bg-gray-500/10 border-gray-700' },
+  reservation:   { Icon: BookmarkCheck, cls: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
 };
 
 function nanoid() {
@@ -126,14 +129,127 @@ function ActivityEditForm({ value, onChange, onSave, onCancel }: EditFormProps) 
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSettingsClick }: Props) {
-  const { t } = useTranslation('trip');
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
-  const [selectedDay, setSelectedDay] = useState(0);
-  const [editingId, setEditingId]   = useState<string | null>(null);
-  const [editForm, setEditForm]     = useState<Partial<Activity>>({});
+  const { t, i18n } = useTranslation('trip');
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [selectedDay, setSelectedDay]   = useState(0);
+  const [editingId, setEditingId]       = useState<string | null>(null);
+  const [editForm, setEditForm]         = useState<Partial<Activity>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft]     = useState('');
+
+  // Voice-to-activity state
+  const [voiceOpen, setVoiceOpen]       = useState(false);
+  const [isRecording, setIsRecording]   = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceInterim, setVoiceInterim] = useState('');
+  const [voiceParsing, setVoiceParsing] = useState(false);
+  const [voiceParsed, setVoiceParsed]   = useState<{ dayDate: string; activity: Partial<Activity> } | null>(null);
+  const [voiceError, setVoiceError]     = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
+  const micSupported = typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  const startRecording = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rec: any = new SR();
+    rec.lang = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          const word = e.results[i][0].transcript.trim();
+          setVoiceTranscript(prev => prev ? prev + ' ' + word : word);
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      setVoiceInterim(interim);
+    };
+    rec.onend = () => {
+      setIsRecording(false);
+      setVoiceInterim('');
+      recognitionRef.current = null;
+    };
+    rec.onerror = () => {
+      setIsRecording(false);
+      setVoiceInterim('');
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = rec;
+    rec.start();
+    setIsRecording(true);
+  }, [i18n.language]);
+
+  const stopRecording = useCallback(() => {
+    recognitionRef.current?.stop();
+  }, []);
+
+  const handleVoiceParse = async () => {
+    const text = (voiceTranscript + ' ' + voiceInterim).trim();
+    if (!text) return;
+    if (isRecording) stopRecording();
+    setVoiceParsing(true);
+    setVoiceError('');
+    try {
+      const result = await parseVoiceActivity(text, trip);
+      if (result) {
+        setVoiceParsed(result);
+      } else {
+        setVoiceError(t('itinerary.voice.failed'));
+      }
+    } catch {
+      setVoiceError(t('itinerary.voice.failed'));
+    } finally {
+      setVoiceParsing(false);
+    }
+  };
+
+  const confirmVoiceActivity = () => {
+    if (!voiceParsed) return;
+    const { dayDate, activity } = voiceParsed;
+    const targetDay = trip.itinerary.find(d => d.date === dayDate);
+    if (!targetDay) return;
+    const newId = nanoid();
+    const newActivity: Activity = {
+      id: newId,
+      time: activity.time ?? '12:00',
+      title: activity.title ?? '',
+      description: activity.description ?? '',
+      category: activity.category ?? 'activity',
+      estimatedCost: activity.estimatedCost ?? 0,
+    };
+    onUpdate({
+      ...trip,
+      itinerary: trip.itinerary.map(d =>
+        d.id === targetDay.id
+          ? { ...d, activities: [...d.activities, newActivity].sort((a, b) => a.time.localeCompare(b.time)) }
+          : d
+      ),
+    });
+    // Switch to that day
+    const dayIdx = trip.itinerary.findIndex(d => d.date === dayDate);
+    if (dayIdx >= 0) setSelectedDay(dayIdx);
+    resetVoice();
+  };
+
+  const resetVoice = () => {
+    if (isRecording) stopRecording();
+    setVoiceOpen(false);
+    setVoiceTranscript('');
+    setVoiceInterim('');
+    setVoiceParsed(null);
+    setVoiceError('');
+    setVoiceParsing(false);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -221,8 +337,144 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
 
   const day = trip.itinerary[selectedDay];
 
+  // Day label for voice preview
+  const voiceDayLabel = voiceParsed
+    ? (() => {
+        const d = new Date(voiceParsed.dayDate + 'T12:00:00');
+        return d.toLocaleDateString(i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        });
+      })()
+    : '';
+
   return (
     <div className="space-y-4">
+
+      {/* ── Voice capture panel ── */}
+      {!voiceOpen ? (
+        <button
+          onClick={() => { setVoiceOpen(true); setVoiceTranscript(''); setVoiceParsed(null); setVoiceError(''); }}
+          className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-gray-700 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl text-sm text-gray-500 hover:text-indigo-400 transition"
+        >
+          <Mic className="w-4 h-4" />
+          {t('itinerary.voice.button')}
+        </button>
+      ) : (
+        <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-5 space-y-4">
+          {voiceParsed ? (
+            /* ── Preview ── */
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-indigo-400 uppercase tracking-wide">
+                {t('itinerary.voice.preview')}
+              </p>
+              <div className="bg-gray-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>📅</span>
+                  <span className="capitalize">{voiceDayLabel}</span>
+                  {voiceParsed.activity.time && (
+                    <span className="ml-auto font-mono text-gray-300">{voiceParsed.activity.time}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const cat = voiceParsed.activity.category ?? 'activity';
+                    const style = CATEGORY_STYLE[cat as Activity['category']] ?? CATEGORY_STYLE.activity;
+                    return (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs ${style.cls}`}>
+                        <style.Icon className="w-3 h-3" />
+                        {t(`itinerary.categories.${cat}`)}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <p className="font-semibold text-gray-100">{voiceParsed.activity.title}</p>
+                {voiceParsed.activity.description && (
+                  <p className="text-sm text-gray-400">{voiceParsed.activity.description}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmVoiceActivity}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition"
+                >
+                  <Check className="w-4 h-4" />
+                  {t('itinerary.voice.addToDay')}
+                </button>
+                <button
+                  onClick={resetVoice}
+                  className="px-4 py-2.5 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-xl text-sm transition"
+                >
+                  {t('itinerary.voice.cancel')}
+                </button>
+              </div>
+            </div>
+          ) : voiceParsing ? (
+            /* ── Analyzing ── */
+            <div className="flex flex-col items-center gap-3 py-4">
+              <Wand2 className="w-6 h-6 text-indigo-400 animate-pulse" />
+              <p className="text-sm text-gray-400">{t('itinerary.voice.analyzing')}</p>
+              {voiceTranscript && (
+                <p className="text-xs text-gray-500 italic text-center max-w-sm">"{voiceTranscript}"</p>
+              )}
+            </div>
+          ) : (
+            /* ── Recording ── */
+            <div className="space-y-3">
+              {!micSupported ? (
+                <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5">
+                  {t('itinerary.voice.unsupported')}
+                </p>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
+                      isRecording
+                        ? 'bg-red-500/20 border-2 border-red-500 text-red-400 scale-105'
+                        : 'bg-indigo-500/15 border-2 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/25 hover:scale-105'
+                    }`}
+                  >
+                    {isRecording ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
+                  </button>
+                  <p className="text-xs text-gray-500">
+                    {isRecording ? t('itinerary.voice.tapStop') : t('itinerary.voice.tapStart')}
+                  </p>
+                  {isRecording && voiceInterim && (
+                    <p className="text-sm text-indigo-300 italic text-center px-4 max-w-sm">{voiceInterim}…</p>
+                  )}
+                  {voiceTranscript && (
+                    <p className="text-sm text-gray-300 text-center px-4 max-w-sm">"{voiceTranscript}"</p>
+                  )}
+                </div>
+              )}
+
+              {voiceError && (
+                <p className="text-xs text-red-400 text-center">{voiceError}</p>
+              )}
+
+              <div className="flex gap-2">
+                {voiceTranscript && !isRecording && (
+                  <button
+                    onClick={handleVoiceParse}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium transition"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    {t('itinerary.voice.analyzing').replace('…', '')}
+                  </button>
+                )}
+                <button
+                  onClick={resetVoice}
+                  className="px-4 py-2 text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-xl text-sm transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Budget bar ── */}
       {totalEst > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl px-5 py-4">

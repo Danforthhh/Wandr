@@ -192,12 +192,23 @@ export default function TripDetail({
                         <span className="text-sm font-semibold text-indigo-300">{city}</span>
                       </div>
                       <ul className="space-y-2 pl-5">
-                        {items.map(item => (
-                          <li key={item} className="flex items-start gap-2 text-sm text-gray-300">
-                            <span className="text-indigo-500/70 mt-1 shrink-0">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
+                        {items.map(item => {
+                          const colonIdx = item.indexOf(' : ');
+                          const hasPrefix = colonIdx !== -1;
+                          const prefix = hasPrefix ? item.slice(0, colonIdx) : null;
+                          const label = hasPrefix ? item.slice(colonIdx + 3) : item;
+                          return (
+                            <li key={item} className="flex items-start gap-2 text-sm text-gray-300">
+                              <span className="text-indigo-500/70 mt-1 shrink-0">•</span>
+                              <span>
+                                {prefix && (
+                                  <span className="inline-block text-xs font-medium text-indigo-300 bg-indigo-500/15 border border-indigo-500/25 rounded px-1.5 py-0.5 mr-1.5 align-middle">{prefix}</span>
+                                )}
+                                {label}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   ))}

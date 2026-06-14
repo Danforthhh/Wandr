@@ -87,13 +87,25 @@
       "regenerate": "Régénérer l'itinéraire",
       "setupRegen": "Configurez une clé Claude pour régénérer"
     },
+    "voice": {
+      "button": "Ajouter via le micro",
+      "tapStart": "Appuyez pour parler",
+      "tapStop": "Appuyez pour arrêter",
+      "analyzing": "Analyse de la commande…",
+      "preview": "Activité détectée",
+      "addToDay": "Ajouter à l'itinéraire",
+      "cancel": "Annuler",
+      "failed": "Impossible d'analyser la commande vocale. Réessayez.",
+      "unsupported": "Microphone non disponible — utilisez Chrome ou Edge."
+    },
     "categories": {
       "accommodation": "Hébergement",
       "transport": "Transport",
       "food": "Restauration",
       "activity": "Activité",
       "sightseeing": "Tourisme",
-      "free": "Temps libre"
+      "free": "Temps libre",
+      "reservation": "Réservation"
     }
   },
   "activity": {
