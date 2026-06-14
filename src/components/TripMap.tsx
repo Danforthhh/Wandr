@@ -1,18 +1,9 @@
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trip } from '../types';
-import { Loader2 } from 'lucide-react';
-
-const CATEGORY_COLOR: Record<string, string> = {
-  food:          '#f97316',
-  sightseeing:   '#3b82f6',
-  activity:      '#22c55e',
-  transport:     '#6b7280',
-  accommodation: '#a855f7',
-  free:          '#14b8a6',
-};
+import { Trip, ItineraryDay } from '../types';
+import { Loader2, ChevronDown, ChevronRight, MapPin } from 'lucide-react';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   food:          '🍴',
@@ -23,16 +14,26 @@ const CATEGORY_EMOJI: Record<string, string> = {
   free:          '⏸️',
 };
 
-function makeIcon(category: string) {
-  const color = CATEGORY_COLOR[category] ?? '#6366f1';
-  const emoji = CATEGORY_EMOJI[category] ?? '📍';
+function makeCityIcon(name: string, days: number) {
+  const short = name.length > 12 ? name.slice(0, 11) + '…' : name;
   return L.divIcon({
     className: '',
-    html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:15px">${emoji}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -20],
+    html: `<div style="background:#6366f1;padding:5px 10px 5px 8px;border-radius:20px;border:2.5px solid white;box-shadow:0 3px 12px rgba(0,0,0,.55);display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+      <span style="font-size:13px">📍</span>
+      <span style="color:white;font-size:12px;font-weight:700">${short}</span>
+      <span style="background:rgba(255,255,255,0.22);border-radius:10px;padding:1px 6px;color:white;font-size:10px;font-weight:600">${days}j</span>
+    </div>`,
+    iconSize: [1, 1],
+    iconAnchor: [0, 16],
+    popupAnchor: [80, -24],
   });
+}
+
+interface LocationGroup {
+  name: string;
+  lat: number;
+  lng: number;
+  days: (ItineraryDay & { globalIndex: number })[];
 }
 
 interface ControllerProps {
@@ -43,19 +44,16 @@ interface ControllerProps {
 
 function MapController({ positions, fallback, posKey }: ControllerProps) {
   const map = useMap();
-
   useEffect(() => {
     if (positions.length > 1) {
-      map.fitBounds(L.latLngBounds(positions), { padding: [50, 50], animate: true, duration: 0.7 });
+      map.fitBounds(L.latLngBounds(positions), { padding: [60, 60], animate: true, duration: 0.7 });
     } else if (positions.length === 1) {
-      map.setView(positions[0], 14, { animate: true, duration: 0.7 });
+      map.setView(positions[0], 11, { animate: true, duration: 0.7 });
     } else if (fallback) {
-      map.setView(fallback, 12, { animate: true, duration: 0.7 });
+      map.setView(fallback, 10, { animate: true, duration: 0.7 });
     }
-  // posKey is a stable string derived from positions, used as dep instead of the array
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posKey, fallback?.[0], fallback?.[1]]);
-
   return null;
 }
 
@@ -64,13 +62,13 @@ interface Props {
 }
 
 export default function TripMap({ trip }: Props) {
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
   const [geocodedCenter, setGeocodedCenter] = useState<[number, number] | null>(null);
   const [geocoding, setGeocoding] = useState(false);
 
   const hasAnyCoords = trip.itinerary.some(d => d.activities.some(a => a.lat && a.lng));
 
-  // Geocode the destination when no activity coordinates exist
   useEffect(() => {
     if (hasAnyCoords) return;
     setGeocoding(true);
@@ -86,144 +84,168 @@ export default function TripMap({ trip }: Props) {
       .finally(() => setGeocoding(false));
   }, [trip.destination, hasAnyCoords]);
 
-  // Flat list of all activities with their day metadata
-  const allActivities = trip.itinerary.flatMap(d =>
-    d.activities.map(a => ({ ...a, dayId: d.id, dayDate: d.date, dayTitle: d.title }))
-  );
+  // Group days by location, compute centroid lat/lng per city
+  const locationGroups = useMemo<LocationGroup[]>(() => {
+    const map: Record<string, LocationGroup> = {};
+    trip.itinerary.forEach((day, idx) => {
+      const loc = day.location ?? trip.destination;
+      if (!map[loc]) map[loc] = { name: loc, lat: 0, lng: 0, days: [] };
+      map[loc].days.push({ ...day, globalIndex: idx + 1 });
+    });
+    return Object.values(map).map(group => {
+      const acts = group.days.flatMap(d => d.activities.filter(a => a.lat && a.lng));
+      if (acts.length > 0) {
+        group.lat = acts.reduce((s, a) => s + a.lat!, 0) / acts.length;
+        group.lng = acts.reduce((s, a) => s + a.lng!, 0) / acts.length;
+      }
+      return group;
+    });
+  }, [trip.itinerary, trip.destination]);
 
-  const filtered = selectedDay
-    ? allActivities.filter(a => a.dayId === selectedDay)
-    : allActivities;
-
-  const mapped = filtered.filter(a => a.lat && a.lng);
-  const positions: [number, number][] = mapped.map(a => [a.lat!, a.lng!]);
-  const posKey = positions.map(p => `${p[0]},${p[1]}`).join('|');
+  const locationsWithCoords = locationGroups.filter(g => g.lat !== 0 || g.lng !== 0);
+  const cityPositions: [number, number][] = locationsWithCoords.map(g => [g.lat, g.lng]);
+  const posKey = cityPositions.map(p => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join('|');
 
   const noItinerary = trip.itinerary.length === 0;
+  const selectedGroup = locationGroups.find(g => g.name === selectedLocation) ?? null;
 
   return (
     <div className="space-y-4">
 
-      {/* Day selector */}
-      {trip.itinerary.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setSelectedDay(null)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-              selectedDay === null
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            All days
-          </button>
-          {trip.itinerary.map((d, i) => (
-            <button
-              key={d.id}
-              onClick={() => setSelectedDay(d.id === selectedDay ? null : d.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                selectedDay === d.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              Day {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Map */}
-      <div
-        className="relative rounded-2xl overflow-hidden border border-gray-800"
-        style={{ height: '460px' }}
-      >
+      <div className="relative rounded-2xl overflow-hidden border border-gray-800" style={{ height: '420px' }}>
         {geocoding && (
           <div className="absolute inset-0 bg-gray-900/80 z-[500] flex items-center justify-center gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-            <span className="text-sm text-gray-400">Locating {trip.destination}…</span>
+            <span className="text-sm text-gray-400">Localisation de {trip.destination}…</span>
           </div>
         )}
 
-        <MapContainer
-          center={[20, 0]}
-          zoom={2}
-          style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom
-        >
+        <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapController positions={positions} fallback={geocodedCenter} posKey={posKey} />
+          <MapController positions={cityPositions} fallback={geocodedCenter} posKey={posKey} />
 
-          {/* Route polyline connecting activities in chronological order */}
-          {positions.length > 1 && (
+          {/* Route between cities */}
+          {cityPositions.length > 1 && (
             <Polyline
-              positions={positions}
-              pathOptions={{ color: '#6366f1', weight: 2, opacity: 0.55, dashArray: '6 5' }}
+              positions={cityPositions}
+              pathOptions={{ color: '#6366f1', weight: 2.5, opacity: 0.6, dashArray: '8 6' }}
             />
           )}
 
-          {mapped.map(a => (
+          {/* One marker per city */}
+          {locationsWithCoords.map(group => (
             <Marker
-              key={`${a.id}-${a.dayId}`}
-              position={[a.lat!, a.lng!]}
-              icon={makeIcon(a.category)}
-            >
-              <Popup>
-                <div className="text-gray-800 text-sm" style={{ minWidth: '180px' }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span>{CATEGORY_EMOJI[a.category] ?? '📍'}</span>
-                    <span className="font-semibold">{a.title}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-1">{a.dayDate} · {a.time}</p>
-                  <p className="text-xs text-gray-600 leading-snug">{a.description}</p>
-                  {(a.estimatedCost ?? 0) > 0 && (
-                    <p className="text-xs text-gray-500 mt-1 font-medium">
-                      ~${a.estimatedCost}
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
+              key={group.name}
+              position={[group.lat, group.lng]}
+              icon={makeCityIcon(group.name, group.days.length)}
+              eventHandlers={{
+                click: () => {
+                  setSelectedLocation(prev => prev === group.name ? null : group.name);
+                  setExpandedDayId(null);
+                },
+              }}
+            />
           ))}
         </MapContainer>
       </div>
 
-      {/* Empty state: no itinerary */}
+      {/* Empty state */}
       {noItinerary && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center">
           <span className="text-3xl block mb-3">🗺️</span>
-          <h3 className="font-semibold text-gray-300 mb-1">No itinerary yet</h3>
-          <p className="text-sm text-gray-500">
-            Generate an itinerary first — each activity will appear as a pin on the map.
-          </p>
+          <h3 className="font-semibold text-gray-300 mb-1">Aucun itinéraire</h3>
+          <p className="text-sm text-gray-500">Générez un itinéraire — chaque étape apparaîtra sur la carte.</p>
         </div>
       )}
 
-      {/* Warning: itinerary exists but no coords */}
-      {!noItinerary && mapped.length === 0 && !geocoding && (
+      {!noItinerary && locationsWithCoords.length === 0 && !geocoding && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-center">
-          <p className="text-sm text-amber-300 font-medium">No GPS coordinates in your itinerary</p>
-          <p className="text-xs text-amber-400/70 mt-1">
-            Regenerate your itinerary — the AI will include location coordinates for each activity.
-          </p>
+          <p className="text-sm text-amber-300 font-medium">Aucune coordonnée GPS dans cet itinéraire</p>
+          <p className="text-xs text-amber-400/70 mt-1">Régénérez l'itinéraire pour obtenir les coordonnées de chaque activité.</p>
         </div>
       )}
 
-      {/* Legend */}
-      {mapped.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {Object.entries(CATEGORY_COLOR).map(([cat, color]) => {
-            if (!mapped.some(a => a.category === cat)) return null;
-            return (
-              <div key={cat} className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-xs text-gray-500 capitalize">{cat}</span>
-              </div>
-            );
-          })}
+      {/* Hint when no city selected */}
+      {locationsWithCoords.length > 0 && !selectedGroup && (
+        <p className="text-xs text-gray-600 text-center">
+          Cliquez sur une ville pour voir ses jours de voyage.
+        </p>
+      )}
+
+      {/* City detail panel */}
+      {selectedGroup && (
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          {/* City header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-indigo-400" />
+              <span className="font-semibold text-gray-100">{selectedGroup.name}</span>
+              <span className="text-xs text-indigo-400 bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded-full">
+                {selectedGroup.days.length} jour{selectedGroup.days.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedLocation(null)}
+              className="text-xs text-gray-500 hover:text-gray-300 transition"
+            >
+              Fermer
+            </button>
+          </div>
+
+          {/* Days accordion */}
+          <div className="divide-y divide-gray-800">
+            {selectedGroup.days.map(day => {
+              const isExpanded = expandedDayId === day.id;
+              return (
+                <div key={day.id}>
+                  {/* Day row */}
+                  <button
+                    onClick={() => setExpandedDayId(prev => prev === day.id ? null : day.id)}
+                    className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-800/50 transition text-left"
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-indigo-400 mr-2">Jour {day.globalIndex}</span>
+                      <span className="text-sm text-gray-200">{day.title}</span>
+                    </div>
+                    {isExpanded
+                      ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
+                    }
+                  </button>
+
+                  {/* Activities list */}
+                  {isExpanded && (
+                    <div className="bg-gray-950/60 px-5 pb-4 pt-1 space-y-2.5">
+                      {day.activities.length === 0 && (
+                        <p className="text-xs text-gray-600 py-2">Aucune activité pour ce jour.</p>
+                      )}
+                      {day.activities.map(act => (
+                        <div key={act.id} className="flex items-start gap-3">
+                          <div className="shrink-0 mt-0.5">
+                            <span className="text-base">{CATEGORY_EMOJI[act.category] ?? '📍'}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-xs font-mono text-gray-500 shrink-0">{act.time}</span>
+                              <span className="text-sm font-medium text-gray-200 truncate">{act.title}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 leading-snug mt-0.5">{act.description}</p>
+                          </div>
+                          {(act.estimatedCost ?? 0) > 0 && (
+                            <span className="text-xs text-gray-500 shrink-0">~{act.estimatedCost}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
