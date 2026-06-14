@@ -75,9 +75,14 @@
       "cost": "Estimated cost per person",
       "document": "Linked document",
       "noDocument": "No document attached",
+      "duration": "Duration",
+      "durationPlaceholder": "e.g. 2h, 1h30",
+      "reminders": "Reminders",
+      "reminderPlaceholder": "Add a reminder… (Enter to confirm)",
       "cancel": "Cancel",
       "save": "Save"
     },
+    "dayReminders": "Don't forget today",
     "budget": {
       "title": "Provisional budget",
       "over": "▲ {{currency}} {{amount}} over",

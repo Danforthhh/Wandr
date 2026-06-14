@@ -75,9 +75,14 @@
       "cost": "Coût estimé par personne",
       "document": "Document lié",
       "noDocument": "Aucun document attaché",
+      "duration": "Durée",
+      "durationPlaceholder": "ex. 2h, 1h30",
+      "reminders": "À ne pas oublier",
+      "reminderPlaceholder": "Ajouter un rappel… (Entrée pour valider)",
       "cancel": "Annuler",
       "save": "Enregistrer"
     },
+    "dayReminders": "À ne pas oublier aujourd'hui",
     "budget": {
       "title": "Budget prévisionnel",
       "over": "▲ {{currency}} {{amount}} dépassé",

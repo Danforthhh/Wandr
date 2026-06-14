@@ -394,8 +394,9 @@ STRICT RULES:
 
 Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
-  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"sightseeing|activity|transport|accommodation","estimatedCost":0,"lat":0.0000,"lng":0.0000}
-]}`
+  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"sightseeing|activity|transport|accommodation","estimatedCost":0,"duration":"Xh","reminders":["item to bring or remember"],"lat":0.0000,"lng":0.0000}
+]}
+Include "duration" as a short string (e.g. "2h", "1h30", "30min"). Include "reminders" as an array of concise things to bring or not forget for this specific activity (empty array [] if nothing notable).`
     : `${contextLine}${flightLine}${stopsBlock}Create a day-by-day itinerary for a ${days}-day trip to ${trip.destination}.
 Dates: ${dates.map((d, i) => `Day ${i + 1}: ${d}`).join(', ')}.
 Budget: ${trip.currency}${trip.budget} for ${trip.travelers} person(s).
@@ -404,9 +405,10 @@ ${stopsBlock ? 'Assign days to cities following the planned route above. ' : 'As
 
 Return a JSON array of exactly ${days} objects. Each object:
 {"id":"day-N","date":"YYYY-MM-DD","location":"City name","title":"Day N — City: Theme","activities":[
-  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0,"lat":0.0000,"lng":0.0000}
+  {"id":"act-N-M","time":"HH:MM","title":"Name","description":"One sentence.","category":"food|sightseeing|activity|transport|accommodation|free","estimatedCost":0,"duration":"Xh","reminders":["item to bring or remember"],"lat":0.0000,"lng":0.0000}
 ]}
-3–5 activities per day with realistic times. Include accurate GPS coordinates. Keep descriptions to 1 sentence.`;
+3–5 activities per day with realistic times. Include accurate GPS coordinates. Keep descriptions to 1 sentence.
+For each activity include "duration" (e.g. "2h", "1h30") and "reminders" (array of things to bring or not forget — empty [] if none).`;
 
   try {
     const text = await callGeneration(

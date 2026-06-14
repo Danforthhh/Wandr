@@ -84,6 +84,8 @@ export interface Activity {
   description: string;
   category: 'accommodation' | 'transport' | 'food' | 'activity' | 'sightseeing' | 'free' | 'reservation';
   estimatedCost: number;
+  duration?: string;
+  reminders?: string[];
   documentId?: string;
   lat?: number;
   lng?: number;

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import {
   Loader2, Sparkles, Clock, MapPin, Utensils, Train, Bed,
   Star, Coffee, Pencil, Trash2, Plus, Check, X, DollarSign, Lock, Settings,
-  Mic, MicOff, BookmarkCheck, Wand2,
+  Mic, MicOff, BookmarkCheck, Wand2, Timer, ListChecks, AlertTriangle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Trip, Activity, ItineraryDay, TripDocument } from '../types';
@@ -43,6 +43,7 @@ interface EditFormProps {
 
 function ActivityEditForm({ value, onChange, onSave, onCancel, documents }: EditFormProps) {
   const { t } = useTranslation('trip');
+  const [reminderInput, setReminderInput] = useState('');
   const inputCls =
     'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition';
 
@@ -95,16 +96,66 @@ function ActivityEditForm({ value, onChange, onSave, onCancel, documents }: Edit
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">
+            <DollarSign className="w-3 h-3 inline" /> {t('itinerary.form.cost')}
+          </label>
+          <input
+            type="number"
+            min={0}
+            step={5}
+            value={value.estimatedCost ?? 0}
+            onChange={e => onChange({ ...value, estimatedCost: Number(e.target.value) })}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">
+            <Timer className="w-3 h-3 inline" /> {t('itinerary.form.duration')}
+          </label>
+          <input
+            type="text"
+            value={value.duration ?? ''}
+            onChange={e => onChange({ ...value, duration: e.target.value || undefined })}
+            placeholder={t('itinerary.form.durationPlaceholder')}
+            className={inputCls}
+          />
+        </div>
+      </div>
+
       <div>
         <label className="block text-xs text-gray-500 mb-1">
-          <DollarSign className="w-3 h-3 inline" /> {t('itinerary.form.cost')}
+          <ListChecks className="w-3 h-3 inline" /> {t('itinerary.form.reminders')}
         </label>
+        {(value.reminders ?? []).length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {(value.reminders ?? []).map((r, i) => (
+              <span key={i} className="flex items-center gap-1 text-xs bg-amber-500/15 text-amber-300 border border-amber-500/25 rounded-full px-2.5 py-1">
+                {r}
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...value, reminders: (value.reminders ?? []).filter((_, j) => j !== i) })}
+                  className="ml-0.5 hover:text-amber-100"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <input
-          type="number"
-          min={0}
-          step={5}
-          value={value.estimatedCost ?? 0}
-          onChange={e => onChange({ ...value, estimatedCost: Number(e.target.value) })}
+          type="text"
+          value={reminderInput}
+          onChange={e => setReminderInput(e.target.value)}
+          onKeyDown={e => {
+            if ((e.key === 'Enter' || e.key === ',') && reminderInput.trim()) {
+              e.preventDefault();
+              onChange({ ...value, reminders: [...(value.reminders ?? []), reminderInput.trim()] });
+              setReminderInput('');
+            }
+          }}
+          placeholder={t('itinerary.form.reminderPlaceholder')}
           className={inputCls}
         />
       </div>
@@ -619,6 +670,30 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
             })()}
           </div>
 
+          {/* Day reminders summary */}
+          {(() => {
+            const dayReminders = (day.activities ?? []).flatMap(a =>
+              (a.reminders ?? []).map(r => ({ r, title: a.title }))
+            );
+            if (dayReminders.length === 0) return null;
+            return (
+              <div className="mb-4 bg-amber-500/8 border border-amber-500/20 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-300">{t('itinerary.dayReminders')}</span>
+                </div>
+                <ul className="space-y-1">
+                  {dayReminders.map(({ r, title }, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-amber-200/80">
+                      <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+                      <span>{r} <span className="text-amber-500/60">— {title}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
           {/* Activities */}
           <div className="space-y-2.5">
             {(day.activities ?? []).map((act: Activity) => {
@@ -667,10 +742,26 @@ export default function Itinerary({ trip, onGenerate, onUpdate, hasAiKey, onSett
                       </div>
                     </div>
                     <p className="text-sm text-gray-400 mt-0.5 leading-relaxed">{act.description}</p>
-                    {act.estimatedCost > 0 && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        ~{trip.currency}{act.estimatedCost} /person · {trip.currency}{(act.estimatedCost * trip.travelers).toLocaleString()} total
-                      </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                      {act.duration && (
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <Timer className="w-3 h-3" />{act.duration}
+                        </span>
+                      )}
+                      {act.estimatedCost > 0 && (
+                        <span className="text-xs text-gray-600">
+                          ~{trip.currency}{act.estimatedCost} /pers · {trip.currency}{(act.estimatedCost * trip.travelers).toLocaleString()} total
+                        </span>
+                      )}
+                    </div>
+                    {act.reminders && act.reminders.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {act.reminders.map((r, i) => (
+                          <span key={i} className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5">
+                            {r}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
