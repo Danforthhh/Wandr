@@ -38,6 +38,29 @@ interface Props {
   onSettingsClick: () => void;
 }
 
+const ALL_TAB_IDS: DetailTab[] = ['overview', 'itinerary', 'packing', 'documents', 'map', 'chat', 'search'];
+
+const TABS_META: { id: DetailTab; emoji: string; searchOnly?: boolean }[] = [
+  { id: 'overview',   emoji: '🏠' },
+  { id: 'itinerary',  emoji: '🗺️' },
+  { id: 'packing',    emoji: '🧳' },
+  { id: 'documents',  emoji: '📎' },
+  { id: 'map',        emoji: '📍' },
+  { id: 'chat',       emoji: '💬', searchOnly: true },
+  { id: 'search',     emoji: '🔍', searchOnly: true },
+];
+
+function loadTabOrder(): DetailTab[] {
+  try {
+    const saved = localStorage.getItem('wandr-tab-order');
+    if (saved) {
+      const arr: DetailTab[] = JSON.parse(saved);
+      if (arr.length === ALL_TAB_IDS.length && ALL_TAB_IDS.every(id => arr.includes(id))) return arr;
+    }
+  } catch {}
+  return ALL_TAB_IDS;
+}
+
 const STATUS_CYCLE: Record<Trip['status'], Trip['status']> = {
   planning: 'upcoming', upcoming: 'completed', completed: 'planning',
 };
@@ -59,6 +82,37 @@ export default function TripDetail({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(trip.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Tab drag-to-reorder
+  const [tabOrder, setTabOrder] = useState<DetailTab[]>(loadTabOrder);
+  const [dragTabId, setDragTabId] = useState<DetailTab | null>(null);
+  const [dropIdx, setDropIdx] = useState(-1);
+
+  function onTabPointerDown(e: React.PointerEvent, tabId: DetailTab, locked: boolean) {
+    if (locked) return;
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    setDragTabId(tabId);
+  }
+  function onTabPointerMove(e: React.PointerEvent) {
+    if (!dragTabId) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const btn = el?.closest('[data-tabidx]') as HTMLElement | null;
+    if (btn?.dataset.tabidx !== undefined) setDropIdx(Number(btn.dataset.tabidx));
+  }
+  function onTabPointerUp() {
+    if (dragTabId && dropIdx >= 0) {
+      const fromIdx = tabOrder.indexOf(dragTabId);
+      if (fromIdx !== dropIdx) {
+        const next = [...tabOrder];
+        const [rem] = next.splice(fromIdx, 1);
+        next.splice(dropIdx, 0, rem);
+        setTabOrder(next);
+        localStorage.setItem('wandr-tab-order', JSON.stringify(next));
+      }
+    }
+    setDragTabId(null);
+    setDropIdx(-1);
+  }
 
   const startNameEdit = () => {
     setNameValue(trip.name);
@@ -91,15 +145,18 @@ export default function TripDetail({
   const overBudget        = remaining < 0;
   const noAnyKey          = !hasGenerationKey && !hasSearchKey;
 
-  const TABS: { id: DetailTab; label: string; emoji: string; searchOnly?: boolean }[] = [
-    { id: 'overview',   label: t('tabs.overview'),   emoji: '🏠' },
-    { id: 'itinerary',  label: t('tabs.itinerary'),  emoji: '🗺️' },
-    { id: 'packing',    label: t('tabs.packing'),    emoji: '🧳' },
-    { id: 'documents',  label: t('tabs.documents'),  emoji: '📎' },
-    { id: 'map',        label: t('tabs.map'),        emoji: '📍' },
-    { id: 'chat',       label: t('tabs.chat'),       emoji: '💬', searchOnly: true },
-    { id: 'search',     label: t('tabs.search'),     emoji: '🔍', searchOnly: true },
-  ];
+  const TABS = TABS_META.map(m => ({ ...m, label: t(`tabs.${m.id}`) }));
+
+  const _sorted = [...TABS].sort((a, b) => tabOrder.indexOf(a.id) - tabOrder.indexOf(b.id));
+  const sortedTabs = (() => {
+    if (!dragTabId || dropIdx < 0) return _sorted;
+    const from = _sorted.findIndex(t => t.id === dragTabId);
+    if (from < 0 || from === dropIdx) return _sorted;
+    const preview = [..._sorted];
+    const [rem] = preview.splice(from, 1);
+    preview.splice(dropIdx, 0, rem);
+    return preview;
+  })();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950 pb-16 md:pb-0">
@@ -183,19 +240,28 @@ export default function TripDetail({
 
         {/* Desktop-only tab bar */}
         <div className="hidden md:block relative max-w-5xl mx-auto px-6 pb-0">
-          <div className="flex gap-1 w-fit overflow-x-auto">
-            {TABS.map(tab => {
+          <div className="flex gap-1 w-fit overflow-x-auto" onPointerMove={onTabPointerMove} onPointerUp={onTabPointerUp} onPointerCancel={onTabPointerUp}>
+            {sortedTabs.map((tab, i) => {
               const locked = !!(tab.searchOnly && !hasSearchKey);
+              const isDragging = dragTabId === tab.id;
+              const isDropTarget = dropIdx === i && dragTabId && dragTabId !== tab.id;
               return (
                 <button key={tab.id}
-                  onClick={() => !locked && onTabChange(tab.id)}
+                  data-tabidx={i}
+                  onClick={() => !locked && !dragTabId && onTabChange(tab.id)}
+                  onPointerDown={e => onTabPointerDown(e, tab.id, locked)}
                   disabled={locked}
-                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
+                  style={{ touchAction: 'none' }}
+                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap select-none ${
                     locked
                       ? 'text-white/30 cursor-not-allowed'
-                      : activeTab === tab.id
-                        ? 'bg-gray-950 text-white'
-                        : 'text-white/60 hover:text-white/90 hover:bg-white/10'
+                      : isDragging
+                        ? 'opacity-40 cursor-grabbing bg-white/5'
+                        : isDropTarget
+                          ? 'ring-2 ring-indigo-400 ring-inset bg-white/10 text-white/90'
+                          : activeTab === tab.id
+                            ? 'bg-gray-950 text-white cursor-grab'
+                            : 'text-white/60 hover:text-white/90 hover:bg-white/10 cursor-grab'
                   }`}>
                   <span>{tab.emoji}</span>
                   {tab.label}
@@ -383,17 +449,26 @@ export default function TripDetail({
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 backdrop-blur-md border-t border-gray-800">
-        <div className="flex items-center overflow-x-auto px-2 pt-1 pb-2 gap-1 scrollbar-hide">
-          {TABS.map(tab => {
+        <div className="flex items-center overflow-x-auto px-2 pt-1 pb-2 gap-1 scrollbar-hide" onPointerMove={onTabPointerMove} onPointerUp={onTabPointerUp} onPointerCancel={onTabPointerUp}>
+          {sortedTabs.map((tab, i) => {
             const locked = !!(tab.searchOnly && !hasSearchKey);
+            const isDragging = dragTabId === tab.id;
+            const isDropTarget = dropIdx === i && dragTabId && dragTabId !== tab.id;
             return (
               <button key={tab.id}
-                onClick={() => !locked && onTabChange(tab.id)}
+                data-tabidx={i}
+                onClick={() => !locked && !dragTabId && onTabChange(tab.id)}
+                onPointerDown={e => onTabPointerDown(e, tab.id, locked)}
                 disabled={locked}
-                className={`flex flex-col items-center gap-0.5 shrink-0 min-w-[52px] py-1.5 px-1 rounded-xl transition ${
+                style={{ touchAction: 'none' }}
+                className={`flex flex-col items-center gap-0.5 shrink-0 min-w-[52px] py-1.5 px-1 rounded-xl transition select-none ${
                   locked
                     ? 'text-gray-700 cursor-not-allowed'
-                    : activeTab === tab.id ? 'text-indigo-400' : 'text-gray-500'
+                    : isDragging
+                      ? 'opacity-30 scale-95'
+                      : isDropTarget
+                        ? 'ring-2 ring-indigo-400 text-indigo-300'
+                        : activeTab === tab.id ? 'text-indigo-400' : 'text-gray-500'
                 }`}>
                 <span className={`text-xl leading-none ${locked ? 'grayscale opacity-40' : ''}`}>{tab.emoji}</span>
                 <span className="text-[10px] font-medium flex items-center gap-0.5 whitespace-nowrap">
